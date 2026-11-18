@@ -333,8 +333,10 @@ Posuvník *Plateau*:
 
 | Poloha | −4 | −3 | −2 | −1 | 0 | +1 | +2 | +3 | +4 |
 |---|---|---|---|---|---|---|---|---|---|
-| dura_ISF_weight | 0,00 | 0,01 | 0,02 | 0,03 | 0,05 | 0,07 | 0,10 | 0,15 | 0,20 |
 | higher_ISFrange_weight | 0,20 | 0,25 | 0,30 | 0,35 | 0,40 | 0,45 | 0,50 | 0,55 | 0,60 |
+
+*Plateau* mení len váhu výšky glykémie. Začína pôsobiť asi 1,1 mmol/l nad cieľom. Pri glykémii
+2,8 mmol/l nad cieľom zosilní ISF o 8 % na polohe −4, o 15 % na polohe 0 a o 23 % na polohe +4.
 
 Pevné, žiadny posuvník ich nemení:
 
@@ -343,6 +345,7 @@ Pevné, žiadny posuvník ich nemení:
 | autoISF_max | 1,4 | strop každého faktora |
 | autoISF_min | 0,7 | |
 | lower_ISFrange_weight | 0,3 | |
+| dura_ISF_weight | 0,03 | dĺžka plató; nie je na posuvníku, lebo pri plató skoro vždy rozhoduje výška glykémie |
 | Blended BG ISF weight | 0,0 | vypnuté |
 | iob_threshold_percent | 80 % | účinkuje len so zapnutým *SMB pri párnom cieli*, ako vždy |
 | smb_delivery_ratio_min | 0,5 | na cieli a pod ním |

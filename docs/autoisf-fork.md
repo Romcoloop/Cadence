@@ -333,8 +333,11 @@ Slider *Plateau*:
 
 | Step | −4 | −3 | −2 | −1 | 0 | +1 | +2 | +3 | +4 |
 |---|---|---|---|---|---|---|---|---|---|
-| dura_ISF_weight | 0.00 | 0.01 | 0.02 | 0.03 | 0.05 | 0.07 | 0.10 | 0.15 | 0.20 |
 | higher_ISFrange_weight | 0.20 | 0.25 | 0.30 | 0.35 | 0.40 | 0.45 | 0.50 | 0.55 | 0.60 |
+
+*Plateau* moves only the weight for the height of glucose. It starts to act about 1.1 mmol/l
+(20 mg/dl) above target. With glucose 2.8 mmol/l (50 mg/dl) above target it makes ISF 8 % stronger
+at step −4, 15 % at step 0 and 23 % at step +4.
 
 Fixed, no slider changes them:
 
@@ -343,6 +346,7 @@ Fixed, no slider changes them:
 | autoISF_max | 1.4 | the limit of every factor |
 | autoISF_min | 0.7 | |
 | lower_ISFrange_weight | 0.3 | |
+| dura_ISF_weight | 0.03 | how long a plateau lasts; not on the slider, because on a plateau the height of glucose nearly always decides |
 | Blended BG ISF weight | 0.0 | off |
 | iob_threshold_percent | 80 % | works only with *SMB on even target* on, as always |
 | smb_delivery_ratio_min | 0.5 | at target and below |
