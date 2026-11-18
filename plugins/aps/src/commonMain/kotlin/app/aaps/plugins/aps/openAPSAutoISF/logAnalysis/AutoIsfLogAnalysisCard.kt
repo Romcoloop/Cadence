@@ -116,7 +116,7 @@ fun AutoIsfLogAnalysisCard(
                 }
 
                 if (state.parameters.isNotEmpty()) {
-                    SectionTitle(state.parametersTitle)
+                    SectionTitle(stringResource(ApsStrings.autoisf_log_parameters_now))
                     state.parameters.forEachIndexed { index, row ->
                         KeyValueRowItem(row)
                         if (index < state.parameters.lastIndex) ItemDivider()

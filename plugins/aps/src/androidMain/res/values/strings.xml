@@ -114,40 +114,14 @@
     <string name="autoISF_settings_title">AutoISF settings</string>
     <string name="smb_delivery_settings_title">SMB delivery settings</string>
 
-    <!--    autoISF meal slots -->
-    <string name="autoisf_slots_title">Slot times</string>
-    <string name="autoisf_slots_summary">All the times in one place: weekday meals, weekend meals and night, holiday mode and the copy buttons. The values of every slot are in the sections below, named Slot values</string>
-    <string name="autoisf_slot_breakfast">Breakfast slot</string>
-    <string name="autoisf_slot_lunch">Lunch slot</string>
-    <string name="autoisf_slot_dinner">Dinner slot</string>
-    <string name="autoisf_slot_night">Night slot</string>
-    <string name="autoisf_slot_breakfast_weekend">Breakfast slot (weekend)</string>
-    <string name="autoisf_slot_lunch_weekend">Lunch slot (weekend)</string>
-    <string name="autoisf_slot_dinner_weekend">Dinner slot (weekend)</string>
-    <string name="autoisf_slot_values_breakfast">Slot values: Breakfast (weekday)</string>
-    <string name="autoisf_slot_values_lunch">Slot values: Lunch (weekday)</string>
-    <string name="autoisf_slot_values_dinner">Slot values: Dinner (weekday)</string>
-    <string name="autoisf_slot_values_breakfast_weekend">Slot values: Breakfast (weekend)</string>
-    <string name="autoisf_slot_values_lunch_weekend">Slot values: Lunch (weekend)</string>
-    <string name="autoisf_slot_values_dinner_weekend">Slot values: Dinner (weekend)</string>
-    <string name="autoisf_slot_values_night">Slot values: Night (every day)</string>
     <string name="autoisf_steps_title">Steps and activity</string>
     <string name="autoisf_steps_summary">Pick the step source (phone or watch), and make dosing more careful during and after activity</string>
     <string name="permission_steps_title">Physical activity</string>
     <string name="permission_steps_description">AutoISF reads the step sensor of the phone to see when you are active, so it can give less insulin during and after a walk.</string>
-    <string name="autoisf_slots_copy_global">Copy global values to all slots</string>
-    <string name="autoisf_slots_copy_global_summary">Writes the global AutoISF and SMB delivery values into every slot: weekday meals, weekend meals and night. Use it once to start, then change only what should differ. The slot times are not changed.</string>
-    <string name="autoisf_slots_copy_global_confirm">Values already set in all slots will be overwritten by the global values. Continue?</string>
-    <string name="autoisf_slots_copy_global_to_night">Copy global values to the night slot</string>
-    <string name="autoisf_slots_copy_global_to_night_summary">Writes the global AutoISF and SMB delivery values into the night slot only. The meal slots and the night time are not changed. Use it as a start, then make the night milder by hand.</string>
-    <string name="autoisf_slots_copy_global_to_night_confirm">Values already set in the night slot will be overwritten by the global values. Continue?</string>
-    <string name="autoisf_slots_copy_weekday_to_weekend">Copy weekday slots to weekend</string>
-    <string name="autoisf_slots_copy_weekday_to_weekend_summary">Writes the values of the weekday breakfast, lunch and dinner slots into the weekend slots. A good start before the weekend slots are tuned. The weekend meal times are not changed.</string>
-    <string name="autoisf_slots_copy_weekday_to_weekend_confirm">Values already set in the three weekend slots will be overwritten by the weekday slot values. Continue?</string>
 
     <!--    autoISF log analysis -->
     <string name="autoisf_log_analysis">AutoISF log analysis</string>
-    <string name="autoisf_log_analysis_info">Looks at the last hours you choose (1 to 24, slide or tap 3 h or 6 h) in the AAPS log, whatever happened in them, and shows what AutoISF did and the values it used. A suggestion is made only when all runs used the values of one slot. It is careful, but it comes from a few hours only and it is just a help: you decide.</string>
+    <string name="autoisf_log_analysis_info">Looks at the last hours you choose (1 to 24, slide or tap 3 h or 6 h) in the AAPS log, whatever happened in them, and shows what AutoISF did and the values it used. A suggestion is careful, but it comes from a few hours only and it is just a help: you decide.</string>
     <string name="autoisf_log_analyze">Analyze</string>
     <string name="autoisf_log_hours" comment="The number of hours that are analyzed, on a button and as a label. %1$d=number of hours. Example: 3 h">%1$d h</string>
     <string name="autoisf_log_running">Reading the logs…</string>
@@ -174,24 +148,22 @@
     <string name="autoisf_log_apply">Apply</string>
     <string name="autoisf_log_applied">Applied</string>
     <string name="autoisf_log_saved">Saved. Watch the next meals before you change more.</string>
-    <string name="autoisf_log_apply_confirm_slot" comment="%1$s=name of the setting, %2$s=current value, %3$s=new value, %4$s=name of the meal slot. Example: Change autoISF max from 1.60 to 1.70 in Lunch slot?">Change %1$s from %2$s to %3$s in %4$s? The suggestion comes from a few hours only. The loop will use the new value at the next run inside this slot time.</string>
+    <string name="autoisf_log_apply_confirm" comment="%1$s=name of the setting, %2$s=current value, %3$s=new value. Example: Change autoISF max from 1.60 to 1.70?">Change %1$s from %2$s to %3$s? The suggestion comes from a few hours only. The loop will use the new value at the next run.</string>
     <string name="autoisf_log_meal_peak">Peak</string>
     <string name="autoisf_log_meal_above" comment="%1$s=how far above target, with sign, in the user's BG unit. Example: Time above target +2.0">Time above target %1$s</string>
     <string name="autoisf_log_meal_end">BG above target at the end</string>
     <string name="autoisf_log_meal_max_limited">Runs cut by autoISF_max</string>
     <string name="autoisf_log_meal_smb_at_max">SMBs as big as maxBolus</string>
     <string name="autoisf_log_meal_driver">Strongest factor</string>
-    <string name="autoisf_log_meal_title" comment="%1$s=name of the slot or Last 3 hours, %2$s=date, %3$s=time of the first run, %4$s=time of the last run. Example: Lunch slot, 3.11., 14:00 – 17:00">%1$s, %2$s, %3$s – %4$s</string>
+    <string name="autoisf_log_meal_title" comment="%1$s=the hours looked at, %2$s=date, %3$s=time of the first run, %4$s=time of the last run. Example: Last 3 h, 3.11., 14:00 – 17:00">%1$s, %2$s, %3$s – %4$s</string>
     <string name="autoisf_log_no_recent_runs" comment="%1$d=number of hours. Example: 3">The log has too few loop runs in the last %1$d hours. Is the loop running?</string>
     <string name="autoisf_log_meal_peak_value" comment="%1$s=peak BG with unit, %2$s=time of the peak, %3$s=how far above target, with sign. Example: 12.4 mmol/l at 13:20 (+7.0)">%1$s at %2$s (%3$s)</string>
     <string name="autoisf_log_meal_low_time" comment="%1$s=the low limit with unit. Example: Time under 3.9 mmol/l">Time under %1$s</string>
     <string name="autoisf_log_meal_temp_target">A temp target was active in this time, so no suggestion is made.</string>
     <string name="autoisf_log_meal_incomplete">The log does not cover all of this time, so no suggestion is made.</string>
-    <string name="autoisf_log_global_values">Global values</string>
     <string name="autoisf_log_title_recent" comment="%1$d=number of hours. Example: Last 3 h">Last %1$d h</string>
-    <string name="autoisf_log_parameters_of" comment="%1$s=the slot in use now, or Global values. Example: Values in use now: Lunch slot">Values in use now: %1$s</string>
-    <string name="autoisf_log_mixed_values">In this time the loop used more than one set of values (several slots, or the global values), so there is no suggestion.</string>
-    <string name="autoisf_log_slots_off">This slot is off (meal slot settings or separate weekend slots), so the loop does not use its values. Switch them on in the AutoISF settings to get suggestions for this slot.</string>
+    <string name="autoisf_log_parameters_now">Values in use now</string>
+    <string name="autoisf_log_values_changed">The AutoISF settings stored now are not the ones the last loop run used, so no suggestion is made. Run the analysis again after the next loop run.</string>
     <string name="autoisf_log_changed_meanwhile">This setting was changed after the analysis. Nothing was saved. Run the analysis again.</string>
 
 </resources>

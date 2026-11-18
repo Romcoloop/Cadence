@@ -43,12 +43,8 @@ import app.aaps.core.interfaces.utils.Round
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
 import app.aaps.core.keys.IntKey
-import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.UnitDoubleKey
-import app.aaps.core.keys.interfaces.PreferenceItem
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.core.keys.interfaces.TextRef
-import app.aaps.core.keys.interfaces.withClick
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.objects.extensions.convertedToAbsolute
 import app.aaps.core.objects.extensions.plannedRemainingMinutes
@@ -146,8 +142,6 @@ open class OpenAPSAutoISFPlugin(
     private var consoleLog = mutableListOf<String>()
     val autoIsfVersion = "3.0.1"
     val autoIsfWeights; get() = preferences.get(BooleanKey.ApsUseAutoIsfWeights)
-    /** Per slot values (weekday and weekend meals, night). Falls back to the global value, see [AutoIsfSlots]. */
-    private val slots = AutoIsfSlots(preferences) { Instant.fromEpochMilliseconds(dateUtil.now()).toLocalDateTime(TimeZone.currentSystemDefault()) }
     /** Phone step counter, stored steps and the step rules, see [AutoIsfSteps]. */
     internal val steps = AutoIsfSteps(preferences, persistenceLayer, phoneStepCounter, aapsLogger) {
         val local = Instant.fromEpochMilliseconds(dateUtil.now()).toLocalDateTime(TimeZone.currentSystemDefault())
@@ -183,24 +177,24 @@ open class OpenAPSAutoISFPlugin(
         steps.stop()
         super.onStop()
     }
-    private val autoISF_max; get() = slots.get(DoubleKey.ApsAutoIsfMax)
-    private val autoISF_min; get() = slots.get(DoubleKey.ApsAutoIsfMin)
-    private val bgAccel_ISF_weight; get() = slots.get(DoubleKey.ApsAutoIsfBgAccelWeight)
-    private val bgBrake_ISF_weight; get() = slots.get(DoubleKey.ApsAutoIsfBgBrakeWeight)
-    private val pp_ISF_weight; get() = slots.get(DoubleKey.ApsAutoIsfPpWeight)
-    private val bgBlend_ISF_weight; get() = slots.get(DoubleKey.ApsAutoIsfBgBlendWeight)
-    private val lower_ISFrange_weight; get() = slots.get(DoubleKey.ApsAutoIsfLowBgWeight)
-    private val higher_ISFrange_weight; get() = slots.get(DoubleKey.ApsAutoIsfHighBgWeight)
-    private val dura_ISF_weight; get() = slots.get(DoubleKey.ApsAutoIsfDuraWeight)
-    private val smb_delivery_ratio; get() = slots.get(DoubleKey.ApsAutoIsfSmbDeliveryRatio)
-    private val smb_delivery_ratio_min; get() = slots.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioMin)
-    private val smb_delivery_ratio_max; get() = slots.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioMax)
-    private val smb_delivery_ratio_bg_range_raw; get() = slots.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange)
+    private val autoISF_max; get() = preferences.get(DoubleKey.ApsAutoIsfMax)
+    private val autoISF_min; get() = preferences.get(DoubleKey.ApsAutoIsfMin)
+    private val bgAccel_ISF_weight; get() = preferences.get(DoubleKey.ApsAutoIsfBgAccelWeight)
+    private val bgBrake_ISF_weight; get() = preferences.get(DoubleKey.ApsAutoIsfBgBrakeWeight)
+    private val pp_ISF_weight; get() = preferences.get(DoubleKey.ApsAutoIsfPpWeight)
+    private val bgBlend_ISF_weight; get() = preferences.get(DoubleKey.ApsAutoIsfBgBlendWeight)
+    private val lower_ISFrange_weight; get() = preferences.get(DoubleKey.ApsAutoIsfLowBgWeight)
+    private val higher_ISFrange_weight; get() = preferences.get(DoubleKey.ApsAutoIsfHighBgWeight)
+    private val dura_ISF_weight; get() = preferences.get(DoubleKey.ApsAutoIsfDuraWeight)
+    private val smb_delivery_ratio; get() = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatio)
+    private val smb_delivery_ratio_min; get() = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioMin)
+    private val smb_delivery_ratio_max; get() = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioMax)
+    private val smb_delivery_ratio_bg_range_raw; get() = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange)
     private val smb_delivery_ratio_bg_range
         get() = if (smb_delivery_ratio_bg_range_raw < 10.0) smb_delivery_ratio_bg_range_raw * Constants.MMOLL_TO_MGDL else smb_delivery_ratio_bg_range_raw
-    val smbMaxRangeExtension; get() = slots.get(DoubleKey.ApsAutoIsfSmbMaxRangeExtension)
+    val smbMaxRangeExtension; get() = preferences.get(DoubleKey.ApsAutoIsfSmbMaxRangeExtension)
     private val enableSMB_EvenOn_OddOff_always; get() = preferences.get(BooleanKey.ApsAutoIsfSmbOnEvenTarget) // for profile target
-    val iobThresholdPercent; get() = slots.get(IntKey.ApsAutoIsfIobThPercent)
+    val iobThresholdPercent; get() = preferences.get(IntKey.ApsAutoIsfIobThPercent)
     private val exerciseMode; get() = SMBDefaults.exercise_mode
     private val highTemptargetRaisesSensitivity; get() = preferences.get(BooleanKey.ApsAutoIsfHighTtRaisesSens)
     val normalTarget = Constants.NORMAL_TARGET_MGDL
@@ -275,8 +269,6 @@ open class OpenAPSAutoISFPlugin(
             targetBg = hardLimits.verifyHardLimits(tempTarget.target(), CoreUiStrings.temp_target_value, HardLimits.LIMIT_TEMP_TARGET_BG)
         }
 
-        // fix the meal slot for this run, so every value below comes from the same slot
-        slots.beginRun()
         var autosensResult = AutosensResult()
         var variableSensitivity = profile.getProfileIsfMgdl()
         val sens = profile.getIsfMgdl("OpenAPSAutoISFPlugin")
@@ -599,12 +591,6 @@ open class OpenAPSAutoISFPlugin(
             autosensData.autosensResult
         } else autosensResult.sensResult = "autosens disabled"
 
-        // slots: inside a meal time or the night time the AutoISF and SMB values of that slot are used
-        if (slots.enabled) {
-            val slot = slots.activeSlot()
-            if (slot != null) consoleError.add("AutoISF slot: ${slot.label} (${slots.windowText(slot)}, ${slots.dayOfRun.label})")
-            else consoleError.add("AutoISF slot: none, global values (${slots.dayOfRun.label})")
-        }
         val dura05: Double = glucose_status.duraISFminutes
         val avg05: Double = glucose_status.duraISFaverage
         val maxISFReduction: Double = autoISF_max
@@ -994,39 +980,6 @@ open class OpenAPSAutoISFPlugin(
                     IntKey.ApsAutoIsfIobThPercent
                 )
             ),
-            // All the times in one section, then one section with the values of every slot, in a fixed order.
-            PreferenceSubScreenDef(
-                key = "auto_isf_slots",
-                title = ApsStrings.autoisf_slots_title,
-                summary = ApsStrings.autoisf_slots_summary,
-                items = listOf(
-                    BooleanKey.ApsAutoIsfSlotsEnabled,
-                    StringKey.ApsAutoIsfMealWindowBreakfast,
-                    StringKey.ApsAutoIsfMealWindowLunch,
-                    StringKey.ApsAutoIsfMealWindowDinner,
-                    BooleanKey.ApsAutoIsfWeekendSlotsEnabled,
-                    StringKey.ApsAutoIsfMealWindowBreakfastWeekend,
-                    StringKey.ApsAutoIsfMealWindowLunchWeekend,
-                    StringKey.ApsAutoIsfMealWindowDinnerWeekend,
-                    StringKey.ApsAutoIsfMealWindowNight,
-                    BooleanKey.ApsAutoIsfHolidayMode,
-                    StringKey.ApsAutoIsfHolidayUntil,
-                    ApsIntentKey.AutoIsfSlotsCopyGlobal.withClick { slots.copyGlobalToAllSlots() },
-                    ApsIntentKey.AutoIsfSlotsCopyGlobalToNight.withClick { slots.copyGlobalToNightSlot() },
-                    ApsIntentKey.AutoIsfSlotsCopyWeekdayToWeekend.withClick { slots.copyWeekdayToWeekend() }
-                )
-            ),
-            // The slot screens sit next to "Slot times", not inside it: the settings UI renders
-            // only two levels (plugin screen -> section), a third level is not drawn at all.
-            // Their keys hide the whole section while the switch is off (hideParentScreenIfHidden);
-            // the weekend ones also while "Separate weekend slots" is off.
-            slotScreen("auto_isf_slot_breakfast", ApsStrings.autoisf_slot_values_breakfast, AutoIsfSlots.Slot.BREAKFAST),
-            slotScreen("auto_isf_slot_lunch", ApsStrings.autoisf_slot_values_lunch, AutoIsfSlots.Slot.LUNCH),
-            slotScreen("auto_isf_slot_dinner", ApsStrings.autoisf_slot_values_dinner, AutoIsfSlots.Slot.DINNER),
-            slotScreen("auto_isf_slot_breakfast_weekend", ApsStrings.autoisf_slot_values_breakfast_weekend, AutoIsfSlots.Slot.BREAKFAST_WEEKEND),
-            slotScreen("auto_isf_slot_lunch_weekend", ApsStrings.autoisf_slot_values_lunch_weekend, AutoIsfSlots.Slot.LUNCH_WEEKEND),
-            slotScreen("auto_isf_slot_dinner_weekend", ApsStrings.autoisf_slot_values_dinner_weekend, AutoIsfSlots.Slot.DINNER_WEEKEND),
-            slotScreen("auto_isf_slot_night", ApsStrings.autoisf_slot_values_night, AutoIsfSlots.Slot.NIGHT),
             PreferenceSubScreenDef(
                 key = "smb_delivery_settings",
                 title = ApsStrings.smb_delivery_settings_title,
@@ -1062,33 +1015,5 @@ open class OpenAPSAutoISFPlugin(
         ),
         icon = pluginDescription.icon
     )
-
-    /** Settings screen of one slot: the slot copies of the AutoISF and SMB delivery values. */
-    private fun slotScreen(key: String, title: TextRef, slot: AutoIsfSlots.Slot): PreferenceSubScreenDef {
-        val isfKeys = listOf(
-            DoubleKey.ApsAutoIsfMin,
-            DoubleKey.ApsAutoIsfMax,
-            DoubleKey.ApsAutoIsfBgAccelWeight,
-            DoubleKey.ApsAutoIsfBgBrakeWeight,
-            DoubleKey.ApsAutoIsfLowBgWeight,
-            DoubleKey.ApsAutoIsfHighBgWeight,
-            DoubleKey.ApsAutoIsfPpWeight,
-            DoubleKey.ApsAutoIsfBgBlendWeight,
-            DoubleKey.ApsAutoIsfDuraWeight
-        )
-        val smbKeys = listOf(
-            DoubleKey.ApsAutoIsfSmbDeliveryRatio,
-            DoubleKey.ApsAutoIsfSmbDeliveryRatioMin,
-            DoubleKey.ApsAutoIsfSmbDeliveryRatioMax,
-            DoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange,
-            DoubleKey.ApsAutoIsfSmbMaxRangeExtension
-        )
-        val items = buildList<PreferenceItem> {
-            isfKeys.forEach { add(slot.doubles.getValue(it)) }
-            add(slot.ints.getValue(IntKey.ApsAutoIsfIobThPercent))
-            smbKeys.forEach { add(slot.doubles.getValue(it)) }
-        }
-        return PreferenceSubScreenDef(key = key, title = title, items = items)
-    }
 
 }

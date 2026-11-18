@@ -2,7 +2,7 @@ package app.aaps.plugins.aps.openAPSAutoISF.logAnalysis
 
 /**
  * The loop runs of the last hours, in numbers: what BG did and what AutoISF did. There is no meal
- * and no slot in this: it is simply the time before now.
+ * in this: it is simply the time before now.
  *
  * All glucose values are in mg/dl. "Above target" values are the difference to the target of
  * the runs (the profile target, or the temp target when one was set).

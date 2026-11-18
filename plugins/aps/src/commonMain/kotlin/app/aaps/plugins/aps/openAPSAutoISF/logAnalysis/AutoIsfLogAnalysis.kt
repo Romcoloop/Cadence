@@ -5,11 +5,10 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.profile.ProfileUtil
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
-import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.DoubleKey
+import app.aaps.core.keys.IntKey
 import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.keys.interfaces.Preferences
-import app.aaps.plugins.aps.openAPSAutoISF.AutoIsfSlots
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -32,23 +31,16 @@ data class AutoIsfLogAnalysisResult(
     val hours: Int,
     /** The numbers of the last hours, null when the log has too few loop runs. */
     val recent: AutoIsfRecentHours?,
-    /**
-     * The slot that all runs of the last hours used. Null when they used more than one set of
-     * values (several slots, or the global values): no suggestion is made then. "Apply" writes to
-     * this slot.
-     */
-    val slot: AutoIsfSlots.Slot?,
-    /** The slot the loop uses now, from the last run. Null: the global values. */
-    val slotNow: AutoIsfSlots.Slot?,
-    /** All 15 numbers the loop uses now (the values of [slotNow], or the global ones). */
+    /** All 15 numbers the loop uses now. */
     val values: List<AutoIsfValue>,
     /** Facts, events and the suggestions of the last hours. */
     val report: AutoIsfLogReport,
     /**
-     * The slot is switched off now (meal slot settings or separate weekend slots), so the algorithm
-     * uses the global values and a change of the slot values would do nothing. No suggestions then.
+     * The settings stored now are not the ones the last run used: a setting was changed after that
+     * run, or the run is from an older build. A suggestion would start from the wrong number, so
+     * none is made.
      */
-    val slotsOff: Boolean = false
+    val valuesChanged: Boolean = false
 )
 
 /** Result of [AutoIsfLogAnalysis.apply]. */
@@ -64,8 +56,8 @@ enum class AutoIsfApplyResult {
  * Runs the AutoISF log analysis and writes a suggested value when the user asks for it.
  *
  * It looks at the last hours before now (as many as the user chooses), whatever happened in them: the numbers of the
- * runs, the SMBs before a low, and a suggestion. A suggestion is made only when all runs used the
- * values of one slot; [apply] writes to the keys of that slot.
+ * runs, the SMBs before a low, and a suggestion. A suggestion is made only when the last run used
+ * the values that are stored now; [apply] writes to the AutoISF settings.
  *
  * Nothing is ever changed without the user: [apply] is only called from a button, after a
  * confirmation dialog.
@@ -85,7 +77,7 @@ class AutoIsfLogAnalysis(
     /** False where there are no log files to read. Then the card must not be shown. */
     val available: Boolean get() = source.available
 
-    /** Looks at the last [hours] hours of the log, as many as the user chose. No meal times and no choice of a slot. */
+    /** Looks at the last [hours] hours of the log, as many as the user chose. */
     suspend fun analyzeRecent(hours: Int): AutoIsfLogAnalysisResult {
         val now = dateUtil.now()
         val since = now - (hours * 60 + LOG_MARGIN_MINUTES) * MINUTE_MILLIS
@@ -94,7 +86,7 @@ class AutoIsfLogAnalysis(
         val result = withContext(Dispatchers.Default) { recent(now, since, hours, parser.runs, files) }
         aapsLogger.debug(
             LTag.APS,
-            "AutoISF log analysis: last $hours h, slot ${result.slot?.label ?: "none"}, $files files, ${result.report.stats.runs} runs, " +
+            "AutoISF log analysis: last $hours h, $files files, ${result.report.stats.runs} runs, " +
                 "${result.report.suggestions.size} suggestions"
         )
         return result
@@ -105,29 +97,22 @@ class AutoIsfLogAnalysis(
         val from = now - hours * 60 * MINUTE_MILLIS
         val inPeriod = analyzer.oneRunPerBg(runs.filter { it.timestamp >= since }.sortedBy { it.timestamp })
         val recent = AutoIsfRecentAnalyzer().look(inPeriod, now, hours * 60)
-            ?: return AutoIsfLogAnalysisResult(files, hours, null, null, null, valuesOf(null), emptyReport(since))
+            ?: return AutoIsfLogAnalysisResult(files, hours, null, values(), emptyReport(since))
         val inTime = inPeriod.filter { it.timestamp in from..now }
-        val slotNow = slotForName(inTime.last().slotName)
-        val slot = slotOfRuns(inTime)
-        // A slot that is switched off now cannot be changed with any effect.
-        val slotsOff = slot != null && (
-            !preferences.get(BooleanKey.ApsAutoIsfSlotsEnabled) ||
-                (slot.dayType == AutoIsfSlots.DayType.WEEKEND && !preferences.get(BooleanKey.ApsAutoIsfWeekendSlotsEnabled))
-            )
-        // Without one slot there is no setting to compare with, so no suggestion can be made.
-        val full = analyzer.analyze(inTime, from, if (slot == null) emptyMap() else currentValues(slot), MIN_HOURS_RECENT)
-        val report = if (slot == null || slotsOff || !recent.used) full.copy(suggestions = emptyList()) else full
-        return AutoIsfLogAnalysisResult(files, hours, recent, slot, slotNow, valuesOf(slotNow), report, slotsOff = slotsOff)
+        val current = currentValues()
+        val valuesChanged = !usedValues(inTime.last(), current)
+        val full = analyzer.analyze(inTime, from, current, MIN_HOURS_RECENT)
+        val report = if (valuesChanged || !recent.used) full.copy(suggestions = emptyList()) else full
+        return AutoIsfLogAnalysisResult(files, hours, recent, values(), report, valuesChanged = valuesChanged)
     }
 
-    /** All 15 numbers of a slot, or the global ones with null: what the loop uses there. */
-    fun valuesOf(slot: AutoIsfSlots.Slot?): List<AutoIsfValue> {
-        val keys = AutoIsfSlots.Slot.BREAKFAST
-        val doubles = keys.doubles.keys.map { global ->
-            AutoIsfValue(global.title, preferences.get(slot?.doubles?.getValue(global) ?: global), AutoIsfParam.entries.firstOrNull { it.key == global }, whole = false)
+    /** All 15 numbers the loop uses now, in the order of the settings screens. */
+    fun values(): List<AutoIsfValue> {
+        val doubles = DOUBLE_KEYS.map { key ->
+            AutoIsfValue(key.title, preferences.get(key), AutoIsfParam.entries.firstOrNull { it.key == key }, whole = false)
         }
-        val ints = keys.ints.keys.map { global ->
-            AutoIsfValue(global.title, preferences.get(slot?.ints?.getValue(global) ?: global).toDouble(), null, whole = true)
+        val ints = INT_KEYS.map { key ->
+            AutoIsfValue(key.title, preferences.get(key).toDouble(), null, whole = true)
         }
         return doubles + ints
     }
@@ -135,10 +120,10 @@ class AutoIsfLogAnalysis(
     private fun emptyReport(since: Long) = AutoIsfLogAnalyzer().analyze(emptyList(), since, emptyMap())
 
     /**
-     * Writes the suggested value to the slot copy of the setting.
+     * Writes the suggested value to the setting.
      */
-    fun apply(suggestion: AutoIsfSuggestion, slot: AutoIsfSlots.Slot): AutoIsfApplyResult {
-        val key = keyFor(suggestion.param, slot)
+    fun apply(suggestion: AutoIsfSuggestion): AutoIsfApplyResult {
+        val key = suggestion.param.key
         val now = preferences.get(key)
         if (abs(now - suggestion.current) > 1e-6) return AutoIsfApplyResult.ChangedMeanwhile
         val value = suggestion.param.clamp(suggestion.suggested)
@@ -147,11 +132,8 @@ class AutoIsfLogAnalysis(
         return AutoIsfApplyResult.Applied
     }
 
-    /** The key to read and write: the slot copy of the setting. */
-    private fun keyFor(param: AutoIsfParam, slot: AutoIsfSlots.Slot): DoubleKey = slot.doubles.getValue(param.key)
-
-    private fun currentValues(slot: AutoIsfSlots.Slot): Map<AutoIsfParam, Double> =
-        AutoIsfParam.entries.associateWith { preferences.get(keyFor(it, slot)) }
+    private fun currentValues(): Map<AutoIsfParam, Double> =
+        AutoIsfParam.entries.associateWith { preferences.get(it.key) }
 
     companion object {
 
@@ -172,20 +154,34 @@ class AutoIsfLogAnalysis(
         /** Less than this much time of runs with the same settings, and only the facts are shown. */
         const val MIN_HOURS_RECENT = 2.0
 
-        /**
-         * The slot a run was run with, from the "AutoISF slot" line of the log: a slot label such as
-         * "Lunch" or "Lunch-weekend". Null for "none" (outside all slot times), for no line (slots off
-         * or an older build) and for a name that is not a slot: the global values were used then.
-         */
-        fun slotForName(name: String?): AutoIsfSlots.Slot? = AutoIsfSlots.Slot.entries.firstOrNull { it.label == name }
+        /** The AutoISF and SMB delivery numbers shown on the card, in the order of the settings screens. */
+        private val DOUBLE_KEYS = listOf(
+            DoubleKey.ApsAutoIsfMin,
+            DoubleKey.ApsAutoIsfMax,
+            DoubleKey.ApsAutoIsfBgAccelWeight,
+            DoubleKey.ApsAutoIsfBgBrakeWeight,
+            DoubleKey.ApsAutoIsfLowBgWeight,
+            DoubleKey.ApsAutoIsfHighBgWeight,
+            DoubleKey.ApsAutoIsfPpWeight,
+            DoubleKey.ApsAutoIsfBgBlendWeight,
+            DoubleKey.ApsAutoIsfDuraWeight,
+            DoubleKey.ApsAutoIsfSmbDeliveryRatio,
+            DoubleKey.ApsAutoIsfSmbDeliveryRatioMin,
+            DoubleKey.ApsAutoIsfSmbDeliveryRatioMax,
+            DoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange,
+            DoubleKey.ApsAutoIsfSmbMaxRangeExtension
+        )
+
+        private val INT_KEYS = listOf(IntKey.ApsAutoIsfIobThPercent)
 
         /**
-         * The slot that all [runs] used, or null when they used more than one set of values: two
-         * slots, a slot and the global values, or the global values only.
+         * True when [run] used the values in [current]: each value the log line of the run has is
+         * the same as the stored one. A value the line does not have is not checked.
          */
-        fun slotOfRuns(runs: List<AutoIsfLogRun>): AutoIsfSlots.Slot? {
-            val names = runs.map { it.slotName }.distinct()
-            return if (names.size == 1) slotForName(names.single()) else null
-        }
+        fun usedValues(run: AutoIsfLogRun, current: Map<AutoIsfParam, Double>): Boolean =
+            current.all { (param, value) ->
+                val logged = run.settings?.get(param.logName) ?: return@all true
+                abs(logged - value) <= 1e-6
+            }
     }
 }

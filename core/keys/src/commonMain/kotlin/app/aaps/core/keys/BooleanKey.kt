@@ -206,35 +206,6 @@ enum class BooleanKey(
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
     ApsUseAutoIsfWeights("openapsama_enable_autoISF", false, KeysStrings.pref_title_aps_use_autoisf_weights, KeysStrings.pref_summary_aps_use_autoisf_weights, defaultedBySM = true, sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)),
-    ApsAutoIsfSlotsEnabled(
-        "autoISF_slots_enabled",
-        false,
-        KeysStrings.pref_title_autoisf_slots_enabled,
-        KeysStrings.pref_summary_autoisf_slots_enabled,
-        defaultedBySM = true,
-        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
-    ),
-    /** Own slots on Saturday, Sunday and in holiday mode. Off = the weekday slots are used every day. */
-    ApsAutoIsfWeekendSlotsEnabled(
-        "autoISF_weekend_slots_enabled",
-        false,
-        KeysStrings.pref_title_autoisf_weekend_slots_enabled,
-        KeysStrings.pref_summary_autoisf_weekend_slots_enabled,
-        defaultedBySM = true,
-        dependency = ApsAutoIsfSlotsEnabled,
-        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
-    ),
-    /** A public holiday or a vacation: the weekend slots are used on a weekday too. Stays on until switched off, see [StringKey.ApsAutoIsfHolidayUntil]. */
-    ApsAutoIsfHolidayMode(
-        "autoISF_holiday_mode",
-        false,
-        KeysStrings.pref_title_autoisf_holiday_mode,
-        KeysStrings.pref_summary_autoisf_holiday_mode,
-        defaultedBySM = true,
-        dependency = ApsAutoIsfWeekendSlotsEnabled,
-        visibility = AutoIsfVisibility.WEEKEND_SLOTS,
-        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
-    ),
     /** On: the step rules use only the phone's own step sensor (stored like a watch would). Off: only the watch. Needs the activity permission. */
     ApsAutoIsfStepsPhoneSource(
         "autoISF_steps_phone_source",

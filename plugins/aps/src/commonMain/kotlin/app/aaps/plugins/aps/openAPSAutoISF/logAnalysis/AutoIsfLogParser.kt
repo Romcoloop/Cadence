@@ -37,13 +37,7 @@ data class AutoIsfLogRun(
     /** Carbs on board in g at the run, null when the line did not have it. */
     val cob: Double? = null,
     /** A temporary target was active (from the profile line before this run). */
-    val tempTarget: Boolean = false,
-    /**
-     * Slot the run used, from the "AutoISF slot: ..." line: a slot label such as "Breakfast",
-     * "Breakfast-weekend" or "Night" (see `AutoIsfSlots.Slot.label`), "none" (slots on, outside all
-     * windows) or null (line not present, older build or slots off).
-     */
-    val slotName: String? = null
+    val tempTarget: Boolean = false
 ) {
 
     /** The SMB was as big as `maxBolus` allowed (the last bolus step is lost by rounding down). */
@@ -120,8 +114,7 @@ class AutoIsfLogParser {
             maxBolus = number(MAX_BOLUS, line),
             settings = lastSettings,
             cob = number(COB, line),
-            tempTarget = lastTempTarget,
-            slotName = SLOT.find(line)?.groupValues?.get(1)
+            tempTarget = lastTempTarget
         )
     }
 
@@ -177,7 +170,6 @@ class AutoIsfLogParser {
         private val DURA_ISF = Regex("dura_ISF adaptation is $NUM")
         private val MAX_BOLUS = Regex("maxBolus: $NUM")
         private val COB = Regex(", COB=$NUM, IOB=")
-        private val SLOT = Regex("AutoISF slot: ([A-Za-z-]+)")
         private const val TEMP_TARGET_SET = "temptargetSet=true"
         private val EVEN_TARGET = Regex("SMB enabled; current target \\S+ (has|is) even")
         private val MIN_GUARD_STOP = Regex("minGuardBG \\S+ projected below \\S+ - disabling SMB")

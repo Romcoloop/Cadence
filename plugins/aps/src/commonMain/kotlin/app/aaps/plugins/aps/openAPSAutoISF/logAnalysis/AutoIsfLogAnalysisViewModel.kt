@@ -3,11 +3,9 @@ package app.aaps.plugins.aps.openAPSAutoISF.logAnalysis
 import androidx.compose.runtime.Immutable
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.interfaces.resources.TextResolver
-import app.aaps.core.keys.interfaces.TextRef
 import app.aaps.core.ui.CoreUiStrings
 import app.aaps.plugins.aps.ApsStrings
 import app.aaps.plugins.aps.compose.KeyValueRow
-import app.aaps.plugins.aps.openAPSAutoISF.AutoIsfSlots
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,16 +27,12 @@ data class AutoIsfSuggestionUi(
 data class AutoIsfLogUiState(
     /** How many hours before now are analyzed. */
     val hours: Int = AutoIsfLogAnalysis.DEFAULT_HOURS,
-    /** The meal slot of the analyzed meal. "Apply" writes to this slot. */
-    val slot: AutoIsfSlots.Slot? = null,
     val running: Boolean = false,
     val hasResult: Boolean = false,
-    /** What was looked at: the slot, the day and the time. */
+    /** What was looked at: the hours, the day and the time. */
     val mealTitle: String = "",
     /** The facts of the last hours. */
     val summary: List<KeyValueRow> = emptyList(),
-    /** Whose values the list shows: the slot in use now, or the global values. */
-    val parametersTitle: String = "",
     /** All AutoISF and SMB delivery numbers in use now; a changed value shows the suggestion: 1.60 → 1.50. */
     val parameters: List<KeyValueRow> = emptyList(),
     /** Plain notes shown above the suggestions: too few runs, settings changed, nothing found. */
@@ -83,10 +77,9 @@ class AutoIsfLogAnalysisViewModel(
     }
 
     fun onApplyClick(item: AutoIsfSuggestionUi) {
-        val slot = _uiState.value.slot ?: return
         val current = value(item.suggestion.param, item.suggestion.current)
         val suggested = value(item.suggestion.param, item.suggestion.suggested)
-        val confirm = rh.gs(ApsStrings.autoisf_log_apply_confirm_slot, item.title, current, suggested, rh.gs(slot.titleRef()))
+        val confirm = rh.gs(ApsStrings.autoisf_log_apply_confirm, item.title, current, suggested)
         _uiState.update { it.copy(pendingApply = item, confirmText = confirm) }
     }
 
@@ -96,8 +89,7 @@ class AutoIsfLogAnalysisViewModel(
 
     fun onApplyConfirm() {
         val item = _uiState.value.pendingApply ?: return
-        val slot = _uiState.value.slot ?: return
-        when (analysis.apply(item.suggestion, slot)) {
+        when (analysis.apply(item.suggestion)) {
             AutoIsfApplyResult.Applied          -> _uiState.update { state ->
                 state.copy(
                     pendingApply = null,
@@ -118,7 +110,6 @@ class AutoIsfLogAnalysisViewModel(
         val report = result.report
         val stats = report.stats
         val recent = result.recent
-        val slot = result.slot
         if (recent == null)
             return AutoIsfLogUiState(hasResult = true, hours = result.hours, notes = listOf(rh.gs(ApsStrings.autoisf_log_no_recent_runs, result.hours)))
 
@@ -135,7 +126,7 @@ class AutoIsfLogAnalysisViewModel(
 
         val mealTitle = rh.gs(
             ApsStrings.autoisf_log_meal_title,
-            slot?.let { rh.gs(it.titleRef()) } ?: rh.gs(ApsStrings.autoisf_log_title_recent, result.hours),
+            rh.gs(ApsStrings.autoisf_log_title_recent, result.hours),
             dateUtil.dateStringShort(recent.start),
             dateUtil.timeString(recent.start),
             dateUtil.timeString(recent.end)
@@ -157,12 +148,11 @@ class AutoIsfLogAnalysisViewModel(
         )
 
         val notes = buildList {
-            if (slot == null) add(rh.gs(ApsStrings.autoisf_log_mixed_values))
-            if (result.slotsOff) add(rh.gs(ApsStrings.autoisf_log_slots_off))
+            if (result.valuesChanged) add(rh.gs(ApsStrings.autoisf_log_values_changed))
             if (recent.hadTempTarget) add(rh.gs(ApsStrings.autoisf_log_meal_temp_target))
             if (recent.incomplete) add(rh.gs(ApsStrings.autoisf_log_meal_incomplete))
             report.settingsChangedAt?.let { add(rh.gs(ApsStrings.autoisf_log_settings_changed, dateUtil.dateAndTimeString(it))) }
-            if (slot != null && recent.used && !result.slotsOff) {
+            if (recent.used && !result.valuesChanged) {
                 if (!report.enoughData)
                     add(rh.gs(ApsStrings.autoisf_log_not_enough_data, rh.gs(CoreUiStrings.format_hours, stats.hours), rh.gs(CoreUiStrings.format_hours, AutoIsfLogAnalysis.MIN_HOURS_RECENT)))
                 else if (report.suggestions.isEmpty()) add(rh.gs(ApsStrings.autoisf_log_no_suggestions))
@@ -202,11 +192,9 @@ class AutoIsfLogAnalysisViewModel(
 
         return AutoIsfLogUiState(
             hours = result.hours,
-            slot = slot,
             hasResult = true,
             mealTitle = mealTitle,
             summary = summary,
-            parametersTitle = rh.gs(ApsStrings.autoisf_log_parameters_of, result.slotNow?.let { rh.gs(it.titleRef()) } ?: rh.gs(ApsStrings.autoisf_log_global_values)),
             parameters = parameters,
             notes = notes,
             events = events,
@@ -235,15 +223,4 @@ class AutoIsfLogAnalysisViewModel(
         AutoIsfSuggestionReason.HighsLimitedByAutoIsfMax -> ApsStrings.autoisf_log_reason_highs_max
         AutoIsfSuggestionReason.HighsWithWeakBgIsf       -> ApsStrings.autoisf_log_reason_highs_bg
     }
-}
-
-/** The name of a meal slot on the screen. */
-fun AutoIsfSlots.Slot.titleRef(): TextRef = when (this) {
-    AutoIsfSlots.Slot.BREAKFAST         -> ApsStrings.autoisf_slot_breakfast
-    AutoIsfSlots.Slot.LUNCH             -> ApsStrings.autoisf_slot_lunch
-    AutoIsfSlots.Slot.DINNER            -> ApsStrings.autoisf_slot_dinner
-    AutoIsfSlots.Slot.BREAKFAST_WEEKEND -> ApsStrings.autoisf_slot_breakfast_weekend
-    AutoIsfSlots.Slot.LUNCH_WEEKEND     -> ApsStrings.autoisf_slot_lunch_weekend
-    AutoIsfSlots.Slot.DINNER_WEEKEND    -> ApsStrings.autoisf_slot_dinner_weekend
-    AutoIsfSlots.Slot.NIGHT             -> ApsStrings.autoisf_slot_night
 }

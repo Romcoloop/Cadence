@@ -1,38 +1,30 @@
 package app.aaps.plugins.aps.openAPSAutoISF.logAnalysis
 
-import app.aaps.plugins.aps.openAPSAutoISF.AutoIsfSlots.Slot
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
-/** The pure parts of [AutoIsfLogAnalysis]: which slot a run name belongs to, and which slot all runs used. */
 class AutoIsfLogAnalysisTest {
 
-    @Test
-    fun `a slot label from the log gives its slot`() {
-        assertEquals(Slot.BREAKFAST, AutoIsfLogAnalysis.slotForName("Breakfast"))
-        assertEquals(Slot.LUNCH_WEEKEND, AutoIsfLogAnalysis.slotForName("Lunch-weekend"))
-        assertEquals(Slot.NIGHT, AutoIsfLogAnalysis.slotForName("Night"))
-    }
+    private val current = mapOf(
+        AutoIsfParam.AutoIsfMax to 1.6,
+        AutoIsfParam.BgAccelWeight to 0.3,
+        AutoIsfParam.HighBgWeight to 0.6,
+        AutoIsfParam.SmbRatioMax to 0.8,
+        AutoIsfParam.SmbRangeExtension to 5.0
+    )
 
-    @Test
-    fun `no slot line, none or an unknown name mean the global values`() {
-        assertNull(AutoIsfLogAnalysis.slotForName(null))
-        assertNull(AutoIsfLogAnalysis.slotForName("none"))
-        assertNull(AutoIsfLogAnalysis.slotForName("Brunch"))
-    }
+    private val sameSettings = mapOf(
+        "autoISF_max" to 1.6, "bgAccel_ISF_weight" to 0.3, "higher_ISFrange_weight" to 0.6,
+        "smb_delivery_ratio_max" to 0.8, "smb_max_range_extension" to 5.0
+    )
 
-    @Test
-    fun `every slot is found by its own label`() {
-        Slot.entries.forEach { assertEquals(it, AutoIsfLogAnalysis.slotForName(it.label)) }
-    }
-
-    private fun run(slotName: String?) = AutoIsfLogRun(
-        timestamp = 1L,
-        bgTimestamp = 1L,
-        bg = 100.0,
+    private fun run(settings: Map<String, Double>?) = AutoIsfLogRun(
+        timestamp = 1_800_000_000_000L,
+        bgTimestamp = null,
+        bg = 120.0,
         eventualBg = null,
-        targetBg = 100.0,
+        targetBg = null,
         insulinReq = null,
         smbUnits = 0.0,
         iob = null,
@@ -46,21 +38,29 @@ class AutoIsfLogAnalysisTest {
         smbRatioAtMax = false,
         smbStoppedByMinGuard = false,
         maxBolus = null,
-        settings = null,
-        slotName = slotName
+        settings = settings
     )
 
     @Test
-    fun `all runs in one slot give that slot`() {
-        assertEquals(Slot.LUNCH, AutoIsfLogAnalysis.slotOfRuns(listOf(run("Lunch"), run("Lunch"), run("Lunch"))))
+    fun theRunUsedTheStoredValues() {
+        assertTrue(AutoIsfLogAnalysis.usedValues(run(sameSettings), current))
     }
 
     @Test
-    fun `two slots, a slot and the global values, or only the global values give no slot`() {
-        assertNull(AutoIsfLogAnalysis.slotOfRuns(listOf(run("Lunch"), run("Dinner"))))
-        assertNull(AutoIsfLogAnalysis.slotOfRuns(listOf(run("Lunch"), run("none"))))
-        assertNull(AutoIsfLogAnalysis.slotOfRuns(listOf(run("Lunch"), run(null))))
-        assertNull(AutoIsfLogAnalysis.slotOfRuns(listOf(run("none"), run("none"))))
-        assertNull(AutoIsfLogAnalysis.slotOfRuns(listOf(run(null), run(null))))
+    fun aValueThatIsNotTheStoredOneIsSeen() {
+        // the run used 1.4, for example with the values of a meal slot of an older build
+        assertFalse(AutoIsfLogAnalysis.usedValues(run(sameSettings + ("autoISF_max" to 1.4)), current))
+        assertFalse(AutoIsfLogAnalysis.usedValues(run(sameSettings + ("smb_max_range_extension" to 3.0)), current))
+    }
+
+    @Test
+    fun aSettingTheAnalyzerDoesNotChangeIsNotCompared() {
+        assertTrue(AutoIsfLogAnalysis.usedValues(run(sameSettings + ("dura_ISF_weight" to 0.5)), current))
+    }
+
+    @Test
+    fun aValueTheLogLineDoesNotHaveIsNotCompared() {
+        assertTrue(AutoIsfLogAnalysis.usedValues(run(sameSettings - "autoISF_max"), current))
+        assertTrue(AutoIsfLogAnalysis.usedValues(run(null), current))
     }
 }
