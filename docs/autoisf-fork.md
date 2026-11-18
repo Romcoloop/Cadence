@@ -1,4 +1,4 @@
-# AutoISF fork: blended BG, meal times, slots and the tuning card
+# AutoISF fork: blended BG and the tuning card
 
 Cadence, a build of AndroidAPS (github.com/Romcoloop/Cadence), changes the **OpenAPS AutoISF** plugin in
 four places. Everything else is upstream AndroidAPS.
@@ -6,11 +6,9 @@ four places. Everything else is upstream AndroidAPS.
 | What | Where in the app | Off means |
 |---|---|---|
 | 1. Blended BG for bg_ISF | AutoISF settings → Blended BG ISF weight | weight 0.0 = as upstream |
-| 2. Meal times (the windows of the meal slots) | AutoISF settings | no meal time set = as upstream |
-| 3. Slots: own values per meal, weekend and night | Slot times + Slot values (slot sections) | switch off = as upstream |
-| 4. AutoISF log analysis (the tuning card) | card on the AutoISF plugin screen | reads only; writes on "Apply" |
-| 5. Steps and activity | AutoISF settings → Steps and activity | all 5 switches off = as upstream |
-| 6. SMB always with any sensor | AutoISF settings → SMB always with any sensor | switch off = as upstream |
+| 2. AutoISF log analysis (the tuning card) | card on the AutoISF plugin screen | reads only; writes on "Apply" |
+| 3. Steps and activity | AutoISF settings → Steps and activity | all 5 switches off = as upstream |
+| 4. SMB always with any sensor | AutoISF settings → SMB always with any sensor | switch off = as upstream |
 
 All of it is in the branch `main`. **Install builds from `main`.**
 Build: GitHub Actions workflow "AutoISF APK" (phone and wear APK; `runTests = true` runs the APS unit
@@ -21,7 +19,7 @@ tests first).
 > "Apply" button of the analysis card after a confirmation dialog.
 > This is insulin dosing. Change one value at a time, in small steps, and talk to your diabetes team.
 
-**Credits.** The AutoISF algorithm is ga-zelle's, as in upstream AAPS. The step rules of chapter 8
+**Credits.** The AutoISF algorithm is ga-zelle's, as in upstream AAPS. The step rules of chapter 6
 are ported from **OpenAPS AIMI** by MTR93600 (https://github.com/MTR93600/OpenApsAIMI,
 `DetermineBasalAIMI2.kt`), with AIMI's thresholds. The blended BG idea (chapter 1) comes from
 **Boost**. Everything, this fork included, is AGPL-3.0.
@@ -42,136 +40,39 @@ Rules in code (`BlendedBg.kt`):
 
 The log shows it as `bgBlend` lines. A weight of 0.1–0.2 is a careful start.
 
-## 2. Meal times
+There is one set of AutoISF and SMB delivery values, and the loop uses it all day. Earlier builds
+had meal slots (own values for breakfast, lunch, dinner, the weekend and the night, chosen by the
+clock). They were removed: the values stored in the slots are not used any more.
 
-Three windows in Slot times: Weekday: breakfast / lunch / dinner time, written as `HH:MM-HH:MM`. They
-are the windows of the weekday meal slots (chapter 3). On Saturday, Sunday and in holiday mode the
-weekend meal times are used instead, when separate weekend slots are on.
-
-There is no separate factor for the time outside the meals any more (the old *Meal factors outside
-meal times*). Outside all slot windows the **global values** are used, and for the night there is the
-**Night slot** with its own 15 values. If you want the time between the meals to be milder, change
-the global values. With the slots off, the windows do nothing and the loop works as upstream.
-
-## 3. Slots
-
-A slot is a time window with its own copy of the 15 AutoISF numbers: 9 AutoISF values, the IOB
-threshold and 5 SMB delivery values. Inside the window the loop uses the values of the slot, outside
-all windows the global values. The on/off switches of AutoISF (SMB, UAM, autosens, …) stay global.
-
-### 3.1 The seven slots
-
-| Slot | Used on | Window set in |
-|---|---|---|
-| Breakfast, Lunch, Dinner | Monday to Friday | Slot times → Weekday: breakfast / lunch / dinner time |
-| Breakfast, Lunch, Dinner (weekend) | Saturday, Sunday, holiday mode | Slot times → Weekend: breakfast / lunch / dinner time |
-| Night | every day | Slot times → Night time (every day) |
-
-- The slot is chosen **by the clock only**, once at the start of every loop run. Entering carbs does
-  not change the slot.
-- The night may go over midnight, for example `23:00-05:30`. The end of a window is not included: at
-  `08:00` the breakfast window `05:30-08:00` is already over.
-- An empty window means the slot is not used.
-- Where a meal window and the night window overlap, **the meal wins**. Where two meal windows
-  overlap, the first one in the order breakfast → lunch → dinner wins.
-- Saturday and Sunday use the weekend slots. On a weekday the weekend slots are used while
-  **Holiday or vacation** is on.
-
-| Switch | Off |
-|---|---|
-| Use meal slot settings | Behaviour exactly as without slots: global values everywhere. |
-| Separate weekend slots | The weekday slots and weekday meal times are used every day. |
-| Holiday or vacation | Weekend slots only on Saturday and Sunday. |
-
-### 3.2 Where the settings are
-
-All in the settings of the OpenAPS AutoISF plugin, in this order:
-
-1. **AutoISF settings** and **SMB delivery settings**: the global values. No times here.
-2. **Slot times**: the one place for every time.
-   - Use meal slot settings
-   - Weekday: breakfast / lunch / dinner time
-   - Separate weekend slots
-   - Weekend: breakfast / lunch / dinner time – shown while separate weekend slots are on
-   - Night time (every day)
-   - Holiday or vacation, and "Holiday or vacation ends on" (`YYYY-MM-DD`). With a date, the switch
-     turns itself off the day after that date. Without a date you switch it off by hand.
-   - **Copy global values to the night slot** – writes the global values into the **night slot
-     only**. The meal slots and the night time are not changed. A good start for the night: copy,
-     then make the values milder by hand (chapter 5).
-   - **Copy global values to all slots** – writes the global values into **all seven** slots. Values
-     already in the slots are lost. Good once, at the very start.
-   - **Copy weekday slots to weekend** – writes the weekday breakfast / lunch / dinner values into
-     the weekend slots. The weekday slots are not changed. Windows are never copied.
-3. **Slot values**, seven sections in a fixed order: *Breakfast (weekday)*, *Lunch (weekday)*,
-   *Dinner (weekday)*, *Breakfast (weekend)*, *Lunch (weekend)*, *Dinner (weekend)*, *Night (every
-   day)*. Each has the 15 values of its slot. A section is hidden while its switch is off.
-
-The settings screen has only two levels (plugin screen, section), so the sections follow each other
-in a row; they cannot be nested.
-
-### 3.3 First setup, in a safe order
-
-A new slot starts with factory values (`autoISF_max` 1.0, all weights 0.0). Such a slot would run
-almost without AutoISF. So fill a slot **before** you give it a window.
-
-1. Use meal slot settings → on.
-2. If the weekday slots are still equal to the global values: **Copy global values to all slots**.
-   If you have already tuned the weekday slots: **do not** press it. Use **Copy weekday slots to
-   weekend** instead, and **Copy global values to the night slot** for the night (then make the
-   night milder, chapter 5 has the values).
-3. Set the weekday meal times (Slot times) if they are not set yet.
-4. Separate weekend slots → on, set the weekend meal times, for example `07:00-10:00`, `12:00-15:00`,
-   `18:00-21:00`.
-5. Night time, for example `23:00-05:30` – only once the Night slot has values.
-6. Leave the values as they are for a few days. The point is to get log lines with slot names first,
-   so the analysis can compare the slots.
-
-### 3.4 Checking what the loop did
-
-Every run writes one line into the AutoISF debug output (OpenAPS AutoISF tab, and the log files):
-
-```
-AutoISF slot: Dinner-weekend (18:00-21:00, weekend)
-AutoISF slot: Night (23:00-05:30, weekday)
-AutoISF slot: none, global values (holiday)
-```
-
-The first word after `slot:` is the slot (`Breakfast`, `Lunch`, `Dinner`, `Breakfast-weekend`, …,
-`Night`, or `none`). In the brackets: the window, and the kind of day (`weekday`, `weekend` or
-`holiday`; `holiday` means "Holiday or vacation" was on).
-
-## 4. The tuning card: AutoISF log analysis
+## 2. The tuning card: AutoISF log analysis
 
 The card on the AutoISF plugin screen reads the log files on the phone (`AndroidAPS.log` and the
 zipped older ones) and shows what AutoISF did in **the last hours**, whatever happened in them. It
 never changes a value by itself.
 
-### 4.1 Controls
+### 2.1 Controls
 
 - **Hours:** a slider from 1 to 24 hours, and two quick buttons **3 h** and **6 h**. You do not type
   anything. The label shows the chosen hours. Changing it clears the result on screen.
 - **Analyze** runs it.
-- The time looked at is the chosen hours before now. There are no meal times, no choice of a slot and
-  no search for a meal: simply the last hours, with everything in them.
-- **The slot:** if all runs of these hours were run with the values of one slot (the log lines say
-  `AutoISF slot: Lunch`, ...), the card knows that slot, and **Apply** writes to it. If the loop used
-  more than one set of values (two slots, a slot and the global values) there is **no suggestion**,
-  because there is no single setting to compare with. The same when the runs have no slot line (the
-  slots were off, or an older build) and when the slot is switched off now.
+- The time looked at is the chosen hours before now. There are no meal times and no search for a
+  meal: simply the last hours, with everything in them.
+- **Apply** writes to the AutoISF settings.
+- If the settings stored now are not the ones the last loop run used (a setting was changed after
+  that run, or the run is from an older build that used a meal slot), there is **no suggestion**:
+  it would start from the wrong number. Run the analysis again after the next loop run.
 - The result stays on screen until you change the hours or press Analyze again.
 
-### 4.2 What it shows
+### 2.2 What it shows
 
-The title says which slot it is (or *Last 6 h* when there is no single slot) and from when to when.
+The title says the hours looked at (*Last 6 h*) and from when to when.
 
 **Facts:** the peak (BG, time, how far above target), minutes above target +2 and +4 mmol/l, minutes
 below 3.9, BG above target at the end, SMB count and units, how often `autoISF_max` cut the factor,
 how often the SMB was as big as maxBolus allowed, the factor that drove ISF most.
 
-**Values in use now:** all 15 AutoISF and SMB delivery numbers the loop uses now (the values of the
-slot of the last run, or the global ones). Where the rules suggest a change, the line shows it:
-`1.60 → 1.50`.
+**Values in use now:** all 15 AutoISF and SMB delivery numbers the loop uses now. Where the rules
+suggest a change, the line shows it: `1.60 → 1.50`.
 
 **Events:** every SMB in these hours that was followed by a low (below 3.9) within 3 hours, or by a
 predicted low that stopped SMBs (`minGuardBG`), with the factor that drove that SMB.
@@ -180,7 +81,7 @@ If there are less than 6 loop runs in the chosen hours, the card says so. If the
 all of the time (the loop stopped, the log began late) or a temp target was active, the facts are
 shown with a note, but there is **no suggestion**.
 
-### 4.3 How a suggestion is made
+### 2.3 How a suggestion is made
 
 Rules, no model, and they see only the chosen hours. Nothing is suggested from less than 2 hours of
 runs with the same settings, and a change of a setting inside that time starts a new period. Each
@@ -210,25 +111,26 @@ Every suggestion names the number of events behind it, the value before and afte
 **Apply** asks first (the dialog says that the suggestion comes from a few hours only), writes the
 value, and refuses if the value changed meanwhile. Values are clamped to the limits of the setting.
 
-### 4.4 How to tune with it
+### 2.4 How to tune with it
 
 1. A few hours are a sample of one. A meal can go wrong because of the carbs, a walk, a late bolus or
    a sensor. Do not change a value because of one bad time. Look at the same part of the day on the
    next days and change something only when the same thing repeats.
-2. Choose the hours so that they fit one slot: for a lunch slot of 11:30–14:00 look at 3 hours at
-   about 14:30. A longer time mixes slots, and then there is no suggestion.
+2. Choose the hours so that they fit what you look at: for a lunch at 12:00 look at 3 hours at about
+   15:00. The values are the same all day, so a change made because of lunch also acts at breakfast,
+   at dinner and in the night.
 3. Apply one suggestion, then watch the next days.
-4. Lows always win over highs: a slot with lows gets less insulin first, even when it also has highs.
+4. Lows always win over highs: when there are lows, give less insulin first, even when there are
+   also highs.
 5. There are no statistics over many days, no whole-day view and no history of the changes. Write
    down what you changed (the log also has a line for each Apply).
 
-## 5. Starting values
+## 3. Starting values
 
-The table shows the global values of the author's own setup, read from his log of 2026-10-27 (14:09),
-next to the AutoISF defaults. They are **one person's values**, not a recommendation for anyone else;
-the point is that the slots start from the same numbers and only differ where the analysis says so.
+The table shows the values of the author's own setup, read from his log of 2026-10-27 (14:09),
+next to the AutoISF defaults. They are **one person's values**, not a recommendation for anyone else.
 
-| Setting | Author (global) | AutoISF default | Note |
+| Setting | Author | AutoISF default | Note |
 |---|---|---|---|
 | autoISF_max | 1.6 | 1.0 (off) | 1.6 is already strong: ISF can be made 60 % stronger. |
 | autoISF_min | 0.6 | 1.0 (off) | ISF can be weakened to 60 % when BG falls. |
@@ -250,45 +152,34 @@ the point is that the slots start from the same numbers and only differ where th
 Also from that log, for context: max IOB 6 U, max basal 1.9 U/h (≈ 5 × basal 0.39), autosens max 1.6,
 maxSMBBasalMinutes 30, UAM 30, target 6.2 mmol/l, ISF 2.27 mmol/l/U, CR 12 g/U.
 
-Starting values for the slots, until the analysis says otherwise:
-
-| Slot | Start with |
-|---|---|
-| Breakfast, Lunch, Dinner (weekday) | the values you have tuned; they stay as they are |
-| … (weekend) | Copy weekday slots to weekend |
-| Night | Copy global values to the night slot, then milder: `autoISF_max` 1.4, `bgAccel_ISF_weight` 0.15, `smb_delivery_ratio` 0.4 / min 0.5 / max 0.7, `smb_max_range_extension` 3. You sleep, so the loop should have less room, not more. |
-
-## 6. What is planned
+## 4. What is planned
 
 1. Night metrics in the analysis: lowest BG, the course 23:00 → 03:00 → morning, and a clear line
    between "the basal in the profile is wrong" and "an AutoISF value should change".
-2. Suggestions per slot from a small rule table (peak, time to peak, lows early / late), with history
-   and "Undo".
+2. Suggestions from a small rule table (peak, time to peak, lows early / late), with history and
+   "Undo".
 3. Automatic small changes with hard limits in code, after enough meals (3 of the last 5), with a
-   global off switch. Weekend slots only after 10 meals.
+   global off switch.
 4. Optional "Explain with Claude": the app sends only the summary and the suggestion, never raw logs,
    and the model never decides a dose.
 5. Later ideas: steps and heart rate from the watch as an activity signal (log first, act later),
    a manual stress / sick-day mode with its own 15 values.
 
-## 7. For developers
+## 5. For developers
 
-- `plugins/aps/.../openAPSAutoISF/BlendedBg.kt` – chapter 1. `MealWindows.kt` – windows, "over
-  midnight".
-- `AutoIsfSlots.kt` – the slots, the selection, holiday mode and the copy buttons. `AutoIsfSlotsTest`
-  covers the selection rules.
-- Keys: `autoISF_slot_<slot>_<value>` in `DoubleKey` / `IntKey`, windows `autoISF_meal_window_*` in
-  `StringKey`, switches in `BooleanKey`. The weekend keys end in `_we_`, the night keys in `_night_`.
-  The three weekday slots keep the keys from phase 1, so an update needs no migration.
+- `plugins/aps/.../openAPSAutoISF/BlendedBg.kt` – chapter 1.
+- The keys of the removed meal slots (`autoISF_slot_*`, `autoISF_meal_window_*`, `autoISF_slots_enabled`,
+  `autoISF_weekend_slots_enabled`, `autoISF_holiday_*`) are gone from the code. Values an older build
+  stored under them stay in the preferences of the phone and are not read.
 - `logAnalysis/AutoIsfLogParser.kt` – one run per `Result: RT(...)` line, settings from the
   `OapsProfileAutoIsf(...)` line. `AutoIsfLogAnalyzer.kt` – statistics, events and the rule table of
-  4.3. `AutoIsfRecentAnalyzer.kt` – the numbers of the last hours. `AutoIsfLogAnalysis.kt` – the analysis and
+  2.3. `AutoIsfRecentAnalyzer.kt` – the numbers of the last hours. `AutoIsfLogAnalysis.kt` – the analysis and
   "Apply".
 - The unit tests of the APS module run in the "AutoISF APK" workflow with `runTests = true`. The
   preference schema snapshot (`app/src/testFull/resources/prefs-schema.txt`) is kept by hand and
   sorted.
 
-## 8. Steps and activity
+## 6. Steps and activity
 
 Five switches in AutoISF settings → **Steps and activity**. All are off; off = as upstream. The rules
 are ported from OpenAPS AIMI (MTR93600/OpenApsAIMI, AGPL-3.0) and **only reduce**: they never add an
@@ -297,13 +188,13 @@ SMB or basal. Without step data nothing fires.
 | Switch | What it does |
 |---|---|
 | Use the phone as step source | Picks **one** source for all step rules, never a mix. **On:** only the phone's step sensor. The phone also stores its steps in the database the way a watch does (5/10/15/30/60/180 minute rows, once a minute), so the upstream automation trigger "Steps count" works without a watch. Needs the **Physical activity** permission; the app asks for it in the permissions sheet. **Off:** only the steps sent by your watch. If the chosen source has no fresh data (under 15 minutes old), the step rules do nothing; there is no silent switch to the other source. An older watch app sends its 10 and 15 minute values as single 5 minute blocks and the app adds the blocks up; a watch app from AAPS #5499 on sends sums and the app takes them as they are. The app sees which form the watch sends, so both sources read the same way, also when the phone and the watch do not have the same version. A watch counts finished 5 minute blocks, so its newest value can be up to 5 minutes old. |
-| Sport guard | Three levels from the steps (mild, guard, long). While you move: temp basal **0 %**, SMB 0 (mild: SMB × 0.8). After you stop: a short hold, then SMB and temp basal come back to 100 % slowly (30 to 120 minutes). The step limits of the levels are five settings under the switch (see 8.1). |
+| Sport guard | Three levels from the steps (mild, guard, long). While you move: temp basal **0 %**, SMB 0 (mild: SMB × 0.8). After you stop: a short hold, then SMB and temp basal come back to 100 % slowly (30 to 120 minutes). The step limits of the levels are five settings under the switch (see 6.1). |
 | Longer SMB interval after activity | After > 1500 steps in 3 h with BG < 120 mg/dl (6.7) at least 10 min between SMBs; while still moving (> 100/5 min and > 500/30 min, last SMB older than 20 min) at least 15 min. |
 | Morning: SMB only after waking | Between the start and end hour (default 03:00–10:00) **no SMB until N steps are counted within one hour** (default 150, a setting). While asleep a dawn rise is corrected by temp basal only (as with SMB off). Waking is a latch: once open, the gate stays open until the end hour, also while sitting still at breakfast. Outside the window the latch is reset. Without step data nothing is blocked. Steps do not tell dawn from a meal; they tell sleep from being awake. Once awake, the rise shape (acce_ISF) and a declared meal decide. |
 | Effort protection | From 25 steps/min the SMB gets smaller, at a brisk walk (40/min and more) down to ×0.45. After the walk the protection fades over 30 min (a short walk) up to 120 min (30+ min of walking). A short burst (5 minute window only) reduces the SMB now but does not start the long protection; that needs the 15 minute window. |
 
 The loop log has a line `steps: steps (watch) 5m=… 10m=… 30m=… 60m=… 180m=…; …` (`phone` when the phone is the source; all windows are sums) and the reason carries
-`afterglow …` and `sport guard: …` (see 8.1), `effort x0.62: SMB 0.80 -> 0.40U` or `Waiting …`.
+`afterglow …` and `sport guard: …` (see 6.1), `effort x0.62: SMB 0.80 -> 0.40U` or `Waiting …`.
 
 A safe start: first only the step source (the switch **Use the phone as step source**), look at the step graph and the `steps:` log
 line for a day or two. Then **Effort protection** (the mildest, gradual), then **Sport guard**. The
@@ -318,7 +209,7 @@ For developers: `openAPSAutoISF/steps/` – `StepBuckets.kt` (minute buckets, wi
 (pure, with its memory kept in `AutoIsfSteps`); the temp basal limit runs after the dosing in
 `DetermineBasalAutoISF.limitBasalBySteps`.
 
-### 8.1 Sport guard in detail
+### 6.1 Sport guard in detail
 
 The old guard let go at once when there were 0 steps in 5 minutes, and the dosing jumped back to
 100 %. Now it has three levels and a slow way back.
@@ -380,7 +271,7 @@ In the log (loop reason):
 `afterglow GUARD: taper 20/60m, x0.67` (+ `high and rising, half length` or `low or falling, SMB 0`) ·
 `sport guard: temp basal 1.2 -> 0U/hr` (the basal limit changed the temp) · `sport guard: no SMB`.
 
-## 9. SMB always with any sensor
+## 7. SMB always with any sensor
 
 AAPS lets **Enable SMB always** and **Enable SMB after carbs** work only with a glucose sensor that
 filters its values itself (Dexcom G6 and G7, Libre 2, Libre 3, Syai Tag). With any other sensor these two

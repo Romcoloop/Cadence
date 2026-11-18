@@ -1,4 +1,4 @@
-# AutoISF fork: blended BG, časy jedál, sloty a ladiaca karta
+# AutoISF fork: blended BG a ladiaca karta
 
 Cadence, zostavenie AndroidAPS (github.com/Romcoloop/Cadence), mení plugin **OpenAPS AutoISF** na štyroch
 miestach. Všetko ostatné je upstream AndroidAPS.
@@ -6,11 +6,9 @@ miestach. Všetko ostatné je upstream AndroidAPS.
 | Čo | Kde v appke | Vypnuté znamená |
 |---|---|---|
 | 1. Blended BG pre bg_ISF | AutoISF settings → Blended BG ISF weight | váha 0,0 = ako upstream |
-| 2. Časy jedál (okná slotov jedál) | AutoISF settings | žiadny čas jedla = ako upstream |
-| 3. Sloty: vlastné hodnoty pre jedlo, víkend a noc | Slot times + Slot values (sekcie slotov) | prepínač vypnutý = ako upstream |
-| 4. AutoISF log analysis (ladiaca karta) | karta na obrazovke pluginu AutoISF | len číta; zapisuje po „Použiť“ |
-| 5. Kroky a aktivita | AutoISF settings → Steps and activity | všetkých 5 prepínačov vypnutých = ako upstream |
-| 6. SMB vždy s akýmkoľvek senzorom | AutoISF settings → SMB always with any sensor | prepínač vypnutý = ako upstream |
+| 2. AutoISF log analysis (ladiaca karta) | karta na obrazovke pluginu AutoISF | len číta; zapisuje po „Použiť“ |
+| 3. Kroky a aktivita | AutoISF settings → Steps and activity | všetkých 5 prepínačov vypnutých = ako upstream |
+| 4. SMB vždy s akýmkoľvek senzorom | AutoISF settings → SMB always with any sensor | prepínač vypnutý = ako upstream |
 
 Všetko je vo vetve `main`. **Inštaluj buildy z `main`.**
 Build: GitHub Actions workflow „AutoISF APK“ (APK pre telefón aj hodinky; `runTests = true` najprv
@@ -22,7 +20,7 @@ spustí unit testy modulu APS).
 > Ide o dávkovanie inzulínu. Meň jednu hodnotu naraz, po malých krokoch, a konzultuj so svojím
 > diabetologickým tímom.
 
-**Autorstvo.** Algoritmus AutoISF je od ga-zelle, ako v upstream AAPS. Pravidlá krokov v kapitole 8
+**Autorstvo.** Algoritmus AutoISF je od ga-zelle, ako v upstream AAPS. Pravidlá krokov v kapitole 6
 sú prevzaté z **OpenAPS AIMI** od MTR93600 (https://github.com/MTR93600/OpenApsAIMI,
 `DetermineBasalAIMI2.kt`), s prahmi z AIMI. Nápad blended BG (kapitola 1) je z **Boostu**. Všetko,
 vrátane tohto forku, je pod licenciou AGPL-3.0.
@@ -43,135 +41,39 @@ Pravidlá v kóde (`BlendedBg.kt`):
 
 V logu sú riadky `bgBlend`. Opatrný štart je váha 0,1–0,2.
 
-## 2. Časy jedál
+Hodnoty AutoISF a SMB delivery sú jedna sada a loop ju používa celý deň. Staršie zostavenia mali
+sloty jedál (vlastné hodnoty pre raňajky, obed, večeru, víkend a noc, vyberané podľa hodín). Boli
+odstránené: hodnoty uložené v slotoch sa už nepoužívajú.
 
-Tri okná v Slot times: Weekday: breakfast / lunch / dinner time, zapísané ako `HH:MM-HH:MM`. Sú to okná
-pracovných slotov jedál (kapitola 3). V sobotu, nedeľu a v režime sviatok/dovolenka sa namiesto nich
-použijú víkendové časy jedál, ak sú zapnuté víkendové sloty.
-
-Samostatný faktor pre čas mimo jedál už neexistuje (bývalý *Meal factors outside meal times*). Mimo
-všetkých okien slotov platia **globálne hodnoty** a pre noc je **nočný slot** s vlastnými 15 hodnotami.
-Ak chceš, aby bol čas medzi jedlami miernejší, uprav globálne hodnoty. Pri vypnutých slotoch okná
-nerobia nič a loop funguje ako upstream.
-
-## 3. Sloty
-
-Slot je časové okno s vlastnou kópiou 15 čísel AutoISF: 9 hodnôt AutoISF, IOB threshold a 5 hodnôt
-SMB delivery. Vo vnútri okna loop používa hodnoty slotu, mimo všetkých okien globálne hodnoty.
-Prepínače AutoISF (SMB, UAM, autosens, …) ostávajú globálne.
-
-### 3.1 Sedem slotov
-
-| Slot | Platí | Okno sa nastavuje v |
-|---|---|---|
-| Raňajky, Obed, Večera | pondelok – piatok | Slot times → Weekday: breakfast / lunch / dinner time |
-| Raňajky, Obed, Večera (víkend) | sobota, nedeľa, režim sviatok/dovolenka | Slot times → Weekend: breakfast / lunch / dinner time |
-| Noc | každý deň | Slot times → Night time (every day) |
-
-- Slot sa vyberá **len podľa hodín**, raz na začiatku každého behu loopu. Zadanie sacharidov slot
-  nemení.
-- Noc môže ísť cez polnoc, napríklad `23:00-05:30`. Koniec okna sa nepočíta: o `08:00` je raňajkové
-  okno `05:30-08:00` už skončené.
-- Prázdne okno = slot sa nepoužíva.
-- Kde sa prekrýva okno jedla s nočným, **vyhráva jedlo**. Kde sa prekrývajú dve jedlá, vyhráva prvé v
-  poradí raňajky → obed → večera.
-- Sobota a nedeľa používajú víkendové sloty. V pracovný deň sa víkendové sloty použijú, kým je
-  zapnutý **Holiday or vacation**.
-
-| Prepínač | Vypnuté |
-|---|---|
-| Use meal slot settings | Správanie presne ako bez slotov: všade globálne hodnoty. |
-| Separate weekend slots | Pracovné sloty a pracovné časy jedál platia každý deň. |
-| Holiday or vacation | Víkendové sloty len v sobotu a nedeľu. |
-
-### 3.2 Kde sú nastavenia
-
-Všetko v nastaveniach pluginu OpenAPS AutoISF, v tomto poradí:
-
-1. **AutoISF settings** a **SMB delivery settings**: globálne hodnoty. Žiadne časy.
-2. **Slot times**: jediné miesto pre všetky časy.
-   - Use meal slot settings
-   - Weekday: breakfast / lunch / dinner time
-   - Separate weekend slots
-   - Weekend: breakfast / lunch / dinner time – vidno, kým sú víkendové sloty zapnuté
-   - Night time (every day)
-   - Holiday or vacation a „Holiday or vacation ends on“ (`RRRR-MM-DD`). S dátumom sa prepínač sám
-     vypne deň po tom dátume. Bez dátumu ho vypínaš ručne.
-   - **Copy global values to the night slot** – zapíše globálne hodnoty len do **nočného slotu**.
-     Sloty jedál a čas noci sa nemenia. Dobrý začiatok pre noc: skopíruj, potom hodnoty ručne
-     zmiernite (kapitola 5).
-   - **Copy global values to all slots** – zapíše globálne hodnoty do **všetkých siedmich** slotov.
-     Hodnoty, ktoré už v slotoch boli, sa stratia. Dobré raz, úplne na začiatku.
-   - **Copy weekday slots to weekend** – zapíše hodnoty pracovných raňajok / obeda / večere do
-     víkendových slotov. Pracovné sloty sa nemenia. Okná sa nikdy nekopírujú.
-3. **Slot values**, sedem sekcií v pevnom poradí: *Breakfast (weekday)*, *Lunch (weekday)*,
-   *Dinner (weekday)*, *Breakfast (weekend)*, *Lunch (weekend)*, *Dinner (weekend)*, *Night (every
-   day)*. Každá má 15 hodnôt svojho slotu. Sekcia je skrytá, kým je jej prepínač vypnutý.
-
-Obrazovka nastavení má len dve úrovne (obrazovka pluginu, sekcia), preto sekcie idú za sebou v rade
-a nedajú sa vnoriť.
-
-### 3.3 Prvé nastavenie v bezpečnom poradí
-
-Nový slot začína s továrenskými hodnotami (`autoISF_max` 1,0, všetky váhy 0,0). Taký slot by bežal
-takmer bez AutoISF. Preto slot najprv **naplň** a až potom mu daj okno.
-
-1. Use meal slot settings → zapnúť.
-2. Ak sú pracovné sloty ešte rovné globálnym hodnotám: **Copy global values to all slots**.
-   Ak si pracovné sloty už ladil: **nestláčaj** ho. Použi **Copy weekday slots to weekend** a pre noc
-   **Copy global values to the night slot** (potom noc zmiernite, hodnoty sú v kapitole 5).
-3. Nastav pracovné časy jedál (Slot times), ak ešte nie sú.
-4. Separate weekend slots → zapnúť, nastaviť víkendové časy, napríklad `07:00-10:00`, `12:00-15:00`,
-   `18:00-21:00`.
-5. Night time, napríklad `23:00-05:30` – až keď má nočný slot hodnoty.
-6. Pár dní hodnoty nemeň. Ide o to, aby sa najprv v logu objavili riadky s názvami slotov, aby ich
-   analýza vedela porovnať.
-
-### 3.4 Kontrola, čo loop urobil
-
-Každý beh zapíše jeden riadok do debug výpisu AutoISF (tab OpenAPS AutoISF a log súbory):
-
-```
-AutoISF slot: Dinner-weekend (18:00-21:00, weekend)
-AutoISF slot: Night (23:00-05:30, weekday)
-AutoISF slot: none, global values (holiday)
-```
-
-Prvé slovo za `slot:` je slot (`Breakfast`, `Lunch`, `Dinner`, `Breakfast-weekend`, …, `Night`
-alebo `none`). V zátvorke: okno a druh dňa (`weekday`, `weekend` alebo `holiday`; `holiday`
-znamená, že bol zapnutý „Holiday or vacation“).
-
-## 4. Ladiaca karta: AutoISF log analysis
+## 2. Ladiaca karta: AutoISF log analysis
 
 Karta na obrazovke pluginu AutoISF číta log súbory v telefóne (`AndroidAPS.log` a staršie
 zazipované) a ukazuje, čo AutoISF robil v **posledných hodinách**, nech sa v nich stalo čokoľvek.
 Sama nikdy žiadnu hodnotu nemení.
 
-### 4.1 Ovládanie
+### 2.1 Ovládanie
 
 - **Hodiny:** posuvník od 1 do 24 hodín a dve rýchle tlačidlá **3 h** a **6 h**. Nič nepíšeš.
   Popisok ukazuje zvolené hodiny. Zmena zmaže výsledok na obrazovke.
 - **Analyze** to spustí.
-- Skúmaný čas sú zvolené hodiny pred teraz. Žiadne časy jedál, výber slotu ani hľadanie jedla:
-  jednoducho posledné hodiny so všetkým, čo v nich je.
-- **Slot:** ak všetky behy týchto hodín bežali s hodnotami jedného slotu (riadky logu hovoria
-  `AutoISF slot: Lunch`, ...), karta ten slot pozná a **Použiť** do neho zapisuje. Ak loop používal
-  viac než jednu sadu hodnôt (dva sloty, slot a globálne hodnoty), **návrh nie je**, lebo niet jedného
-  nastavenia na porovnanie. Rovnako keď behy nemajú riadok slotu (sloty boli vypnuté alebo staršia
-  verzia) a keď je slot teraz vypnutý.
+- Skúmaný čas sú zvolené hodiny pred teraz. Žiadne časy jedál ani hľadanie jedla: jednoducho
+  posledné hodiny so všetkým, čo v nich je.
+- **Použiť** zapisuje do nastavení AutoISF.
+- Ak teraz uložené nastavenia nie sú tie, s ktorými bežal posledný beh loopu (nastavenie sa zmenilo
+  po tom behu, alebo je beh zo staršieho zostavenia, ktoré použilo slot jedla), **návrh nie je**:
+  vychádzal by zo zlého čísla. Spusti analýzu znova po ďalšom behu loopu.
 - Výsledok ostáva na obrazovke, kým nezmeníš hodiny alebo znova nestlačíš Analyze.
 
-### 4.2 Čo ukazuje
+### 2.2 Čo ukazuje
 
-Nadpis povie, o aký slot ide (alebo *Last 6 h*, keď nie je jeden slot) a od kedy do kedy.
+Nadpis povie skúmané hodiny (*Last 6 h*) a od kedy do kedy.
 
 **Fakty:** vrchol (BG, čas, o koľko nad cieľom), minúty nad cieľom +2 a +4 mmol/l, minúty pod 3,9,
 BG nad cieľom na konci, počet a jednotky SMB, ako často `autoISF_max` orezal faktor, ako často bol
 SMB taký veľký, ako dovolil maxBolus, faktor, ktorý najčastejšie riadil ISF.
 
 **Hodnoty, ktoré sa teraz používajú:** všetkých 15 čísel AutoISF a SMB delivery, ktoré loop teraz
-používa (hodnoty slotu posledného behu, alebo globálne). Tam, kde pravidlá navrhujú zmenu, ju riadok
-ukazuje: `1.60 → 1.50`.
+používa. Tam, kde pravidlá navrhujú zmenu, ju riadok ukazuje: `1.60 → 1.50`.
 
 **Udalosti:** každý SMB z týchto hodín, po ktorom do 3 hodín prišla hypo (pod 3,9) alebo
 predikovaná hypo, ktorá zastavila SMB (`minGuardBG`), s faktorom, ktorý ten SMB riadil.
@@ -180,7 +82,7 @@ Ak je vo zvolených hodinách menej než 6 behov loopu, karta to povie. Ak log n
 stál, log začal neskoro) alebo bol aktívny temp target, fakty sa ukážu s poznámkou, ale **bez
 návrhu**.
 
-### 4.3 Ako vzniká návrh
+### 2.3 Ako vzniká návrh
 
 Pravidlá, žiadny model, a vidia len zvolené hodiny. Z menej než 2 hodín behov s rovnakými
 nastaveniami sa nenavrhne nič a zmena nastavenia v tom čase začína nové obdobie. Každý návrh má
@@ -210,26 +112,26 @@ Každý návrh uvádza počet udalostí, hodnotu pred a po a jeden dôvod. **Pou
 (dialóg povie, že návrh je z pár hodín), zapíše hodnotu a odmietne, ak sa hodnota medzitým zmenila.
 Hodnoty sú orezané na limity nastavenia.
 
-### 4.4 Ako s tým ladiť
+### 2.4 Ako s tým ladiť
 
 1. Pár hodín je vzorka jedna. Jedlo môže dopadnúť zle kvôli sacharidom, prechádzke, neskorému
    bolusu alebo senzoru. Nemeň hodnotu kvôli jednému zlému času. Pozri sa na tú istú časť dňa aj
    v ďalšie dni a zmeň niečo, len keď sa to isté opakuje.
-2. Hodiny zvoľ tak, aby sa zmestili do jedného slotu: pri obedňajšom slote 11:30–14:00 pozri 3
-   hodiny okolo 14:30. Dlhší čas mieša sloty a vtedy návrh nie je.
+2. Hodiny zvoľ podľa toho, na čo sa pozeráš: pri obede o 12:00 pozri 3 hodiny okolo 15:00.
+   Hodnoty sú celý deň rovnaké, takže zmena kvôli obedu pôsobí aj pri raňajkách, večeri a v noci.
 3. Použi jeden návrh a sleduj ďalšie dni.
-4. Hypo vždy vyhrávajú nad hyper: slot s hypo dostane najprv menej inzulínu, aj keď má aj vysoké.
+4. Hypo vždy vyhrávajú nad hyper: keď sú hypo, daj najprv menej inzulínu, aj keď sú aj vysoké
+   hodnoty.
 5. Nie sú tu štatistiky z viacerých dní, pohľad na celý deň ani história zmien. Zapisuj si, čo si
    zmenil (log má riadok aj pri každom Použiť).
 
-## 5. Štartovacie hodnoty
+## 3. Štartovacie hodnoty
 
-Tabuľka ukazuje globálne hodnoty autorovho vlastného nastavenia, prečítané z jeho logu z 27.10.2026
+Tabuľka ukazuje hodnoty autorovho vlastného nastavenia, prečítané z jeho logu z 27.10.2026
 (14:09), vedľa predvolených hodnôt AutoISF. Sú to **hodnoty jedného človeka**, nie odporúčanie pre
-kohokoľvek iného; ide o to, aby sloty štartovali z rovnakých čísel a líšili sa len tam, kde to povie
-analýza.
+kohokoľvek iného.
 
-| Nastavenie | Autor (globál) | Default AutoISF | Poznámka |
+| Nastavenie | Autor | Default AutoISF | Poznámka |
 |---|---|---|---|
 | autoISF_max | 1,6 | 1,0 (vypnuté) | 1,6 je už silné: ISF môže byť o 60 % silnejší. |
 | autoISF_min | 0,6 | 1,0 (vypnuté) | ISF sa pri klesaní môže oslabiť na 60 %. |
@@ -251,43 +153,33 @@ analýza.
 Z toho istého logu pre kontext: max IOB 6 U, max bazál 1,9 U/h (≈ 5 × bazál 0,39), autosens max 1,6,
 maxSMBBasalMinutes 30, UAM 30, cieľ 6,2 mmol/l, ISF 2,27 mmol/l/U, CR 12 g/U.
 
-Štartovacie hodnoty slotov, kým analýza nepovie inak:
-
-| Slot | Začni s |
-|---|---|
-| Raňajky, Obed, Večera (pracovný deň) | hodnoty, ktoré si naladil; ostávajú ako sú |
-| … (víkend) | Copy weekday slots to weekend |
-| Noc | Copy global values to the night slot, potom miernejšie: `autoISF_max` 1,4, `bgAccel_ISF_weight` 0,15, `smb_delivery_ratio` 0,4 / min 0,5 / max 0,7, `smb_max_range_extension` 3. Spíš, takže loop má mať menej priestoru, nie viac. |
-
-## 6. Čo je v pláne
+## 4. Čo je v pláne
 
 1. Nočné metriky v analýze: minimum BG, priebeh 23:00 → 03:00 → ráno a jasná hranica medzi „zlý bazál
    v profile“ a „treba zmeniť hodnotu AutoISF“.
-2. Návrhy per slot z malej tabuľky pravidiel (vrchol, čas do vrcholu, hypo skoro / neskoro),
-   s históriou a „Vrátiť“.
+2. Návrhy z malej tabuľky pravidiel (vrchol, čas do vrcholu, hypo skoro / neskoro), s históriou
+   a „Vrátiť“.
 3. Automatické malé zmeny s tvrdými stropmi v kóde, po dostatočnom počte jedál (3 z posledných 5),
-   s globálnym vypínačom. Víkendové sloty až od 10 jedál.
+   s globálnym vypínačom.
 4. Voliteľné „Vysvetli cez Claude“: appka pošle len zhrnutie a návrh, nikdy surové logy, a model nikdy
    nerozhoduje o dávke.
-5. Tep z hodiniek ako druhý signál aktivity (kroky už sú v kapitole 8), ručný režim
+5. Tep z hodiniek ako druhý signál aktivity (kroky už sú v kapitole 6), ručný režim
    stres / choroba s vlastnými 15 hodnotami.
 
-## 7. Pre vývojárov
+## 5. Pre vývojárov
 
-- `plugins/aps/.../openAPSAutoISF/BlendedBg.kt` – kapitola 1. `MealWindows.kt` – okná, „cez polnoc“.
-- `AutoIsfSlots.kt` – sloty, výber, režim sviatok/dovolenka a kopírovacie tlačidlá. `AutoIsfSlotsTest`
-  pokrýva pravidlá výberu.
-- Kľúče: `autoISF_slot_<slot>_<hodnota>` v `DoubleKey` / `IntKey`, okná `autoISF_meal_window_*` v
-  `StringKey`, prepínače v `BooleanKey`. Víkendové kľúče majú `_we_`, nočné `_night_`. Tri pracovné
-  sloty majú kľúče z fázy 1, takže update nepotrebuje migráciu.
+- `plugins/aps/.../openAPSAutoISF/BlendedBg.kt` – kapitola 1.
+- Kľúče odstránených slotov jedál (`autoISF_slot_*`, `autoISF_meal_window_*`, `autoISF_slots_enabled`,
+  `autoISF_weekend_slots_enabled`, `autoISF_holiday_*`) už v kóde nie sú. Hodnoty, ktoré pod nimi
+  uložilo staršie zostavenie, ostávajú v preferenciách telefónu a nečítajú sa.
 - `logAnalysis/AutoIsfLogParser.kt` – jeden beh na riadok `Result: RT(...)`, nastavenia z riadku
   `OapsProfileAutoIsf(...)`. `AutoIsfLogAnalyzer.kt` – štatistiky, udalosti a tabuľka pravidiel
-  z 4.3. `AutoIsfRecentAnalyzer.kt` – čísla posledných hodín. `AutoIsfLogAnalysis.kt` – analýza
+  z 2.3. `AutoIsfRecentAnalyzer.kt` – čísla posledných hodín. `AutoIsfLogAnalysis.kt` – analýza
   a „Použiť“.
 - Unit testy modulu APS bežia vo workflow „AutoISF APK“ s `runTests = true`. Snímka schémy
   preferencií (`app/src/testFull/resources/prefs-schema.txt`) sa udržiava ručne, zoradená.
 
-## 8. Kroky a aktivita
+## 6. Kroky a aktivita
 
 Päť prepínačov v AutoISF settings → **Steps and activity**. Všetky sú vypnuté; vypnuté = ako
 upstream. Pravidlá sú prenesené z OpenAPS AIMI (MTR93600/OpenApsAIMI, AGPL-3.0) a **len uberajú**:
@@ -296,13 +188,13 @@ nikdy nepridajú SMB ani bazál. Bez údajov o krokoch nič nezasiahne.
 | Prepínač | Čo robí |
 |---|---|
 | Use the phone as step source | Vyberie **jeden** zdroj pre všetky pravidlá krokov, nikdy zmes. **Zapnuté:** len krokomer telefónu. Telefón ukladá kroky do databázy v rovnakej forme ako hodinky (riadky 5/10/15/30/60/180 min, každú minútu), takže funguje aj upstream automatizácia „Steps count“ bez hodiniek. Potrebuje povolenie **Fyzická aktivita** – appka si ho vypýta v hárku povolení. **Vypnuté:** len kroky, ktoré posielajú hodinky. Ak vybraný zdroj nemá čerstvé údaje (mladšie ako 15 minút), pravidlá krokov nerobia nič; ticho sa neprepne na druhý zdroj. Staršia appka v hodinkách posiela 10- a 15-minútovú hodnotu ako samostatné 5-minútové bloky a appka ich sčíta; appka v hodinkách od AAPS #5499 posiela už súčty a appka ich berie tak, ako sú. Appka sama spozná, ktorú formu hodinky posielajú, takže oba zdroje sa čítajú rovnako, aj keď telefón a hodinky nemajú rovnakú verziu. Hodinky počítajú dokončené 5-minútové bloky, preto ich najnovšia hodnota môže byť až 5 minút stará. |
-| Sport guard | Tri úrovne podľa krokov (mierna, guard, dlhá). Počas pohybu: temp bazál **0 %**, SMB 0 (mierna: SMB × 0,8). Po zastavení: krátke pridržanie, potom sa SMB a temp bazál pomaly vracajú na 100 % (30 až 120 minút). Hranice krokov pre úrovne sú päť nastavení pod prepínačom (pozri 8.1). |
+| Sport guard | Tri úrovne podľa krokov (mierna, guard, dlhá). Počas pohybu: temp bazál **0 %**, SMB 0 (mierna: SMB × 0,8). Po zastavení: krátke pridržanie, potom sa SMB a temp bazál pomaly vracajú na 100 % (30 až 120 minút). Hranice krokov pre úrovne sú päť nastavení pod prepínačom (pozri 6.1). |
 | Longer SMB interval after activity | Po > 1500 krokoch za 3 h a BG < 120 mg/dl (6,7) aspoň 10 min medzi SMB; kým sa ešte hýbeš (> 100/5 min a > 500/30 min, posledný SMB starší než 20 min) aspoň 15 min. |
 | Morning: SMB only after waking | Medzi začiatkom a koncom rannej fázy (default 03:00–10:00) **žiadne SMB, kým sa nenapočíta N krokov za hodinu** (default 150, nastaviteľné). Kým spíš, dawn rise koriguje len temp bazál (ako pri vypnutom SMB). Zobudenie je latch: raz otvorená brána ostane otvorená do konca fázy, aj keď sedíš pri raňajkách. Mimo fázy sa latch resetuje. Bez údajov o krokoch neblokuje nič. Kroky nerozlíšia dawn od jedla – rozlíšia spánok od bdenia; po zobudení rozhoduje tvar rastu (acce_ISF) a deklarácia jedla. |
 | Effort protection | Od 25 krokov/min je SMB menšie, pri svižnej chôdzi (40/min a viac) až ×0,45. Po skončení chôdze ochrana doznieva 30 min (krátka prechádzka) až 120 min (30+ min chôdze). Krátky „výbeh“ (len 5-min okno) zmenší SMB teraz, ale nespustí dlhú ochranu – na to treba 15-min okno. |
 
 V logu loopu je riadok `steps: steps (watch) 5m=… 10m=… 30m=… 60m=… 180m=…; …` (`phone`, ak je zdrojom telefón; všetky okná sú súčty) a v dôvode (reason) sú texty
-`afterglow …` a `sport guard: …` (pozri 8.1), `effort x0.62: SMB 0.80 -> 0.40U` alebo `Waiting …`.
+`afterglow …` a `sport guard: …` (pozri 6.1), `effort x0.62: SMB 0.80 -> 0.40U` alebo `Waiting …`.
 
 Bezpečný štart: najprv len zdroj krokov (prepínač **Use the phone as step source**), pozri sa deň-dva na graf krokov a na
 riadok `steps:` v logu. Potom **Effort protection** (najmiernejšie, plynulé), potom **Sport guard**.
@@ -317,7 +209,7 @@ Pre vývojárov: `openAPSAutoISF/steps/` – `StepBuckets.kt` (minútové koše,
 (čistý, pamäť drží `AutoIsfSteps`); limit temp bazálu beží po výpočte dávky v
 `DetermineBasalAutoISF.limitBasalBySteps`.
 
-### 8.1 Sport guard podrobne
+### 6.1 Sport guard podrobne
 
 Starý guard sa uvoľnil hneď, keď bolo 5 minút 0 krokov, a dávkovanie skočilo späť na 100 %. Teraz
 má tri úrovne a pomalý návrat.
@@ -379,7 +271,7 @@ V logu (reason loopu):
 `afterglow GUARD: taper 20/60m, x0.67` (+ `high and rising, half length` alebo `low or falling, SMB 0`) ·
 `sport guard: temp basal 1.2 -> 0U/hr` (limit bazálu zmenil temp) · `sport guard: no SMB`.
 
-## 9. SMB vždy s akýmkoľvek senzorom
+## 7. SMB vždy s akýmkoľvek senzorom
 
 AAPS povolí **Enable SMB always** a **Enable SMB after carbs** len so senzorom, ktorý si hodnoty sám
 vyhladzuje (Dexcom G6 a G7, Libre 2, Libre 3, Syai Tag). Pri inom senzore sú tieto dve voľby vypnuté
