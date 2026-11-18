@@ -1,7 +1,7 @@
-# AutoISF fork: blended BG and the tuning card
+# AutoISF fork: blended BG, the tuning card and easy tuning
 
 Cadence, a build of AndroidAPS (github.com/Romcoloop/Cadence), changes the **OpenAPS AutoISF** plugin in
-four places. Everything else is upstream AndroidAPS.
+five places. Everything else is upstream AndroidAPS.
 
 | What | Where in the app | Off means |
 |---|---|---|
@@ -9,6 +9,7 @@ four places. Everything else is upstream AndroidAPS.
 | 2. AutoISF log analysis (the tuning card) | card on the AutoISF plugin screen | reads only; writes on "Apply" |
 | 3. Steps and activity | AutoISF settings → Steps and activity | all 5 switches off = as upstream |
 | 4. SMB always with any sensor | AutoISF settings → SMB always with any sensor | switch off = as upstream |
+| 5. Easy tuning: two sliders instead of the 15 numbers | AutoISF plugin settings → Easy tuning | switch off = the full settings are used |
 
 All of it is in the branch `main`. **Install builds from `main`.**
 Build: GitHub Actions workflow "AutoISF APK" (phone and wear APK; `runTests = true` runs the APS unit
@@ -292,3 +293,73 @@ AutoISF, it changes a safety rule of AAPS.
   say `Safety: SMB always and after carbs allowed by the user though the active BG source has no advanced
   filtering`.
 - **Simple mode** uses the default, so the limit stays on there.
+
+## 8. Easy tuning
+
+AutoISF has 15 numbers. Easy tuning replaces them with **two sliders**, for people who do not want
+to learn all of them. It is off by default, and off means exactly as before.
+
+**Where:** settings of the OpenAPS AutoISF plugin, at the top: the switch **Easy tuning**, and under
+it the sliders **Rise** and **Plateau**. AAPS **Simple mode** hides all AutoISF settings, so switch
+Simple mode off first, in the AAPS preferences. In Simple mode easy tuning is always off.
+
+| Slider | What it means | Left | Right |
+|---|---|---|---|
+| Rise | how hard the loop acts while glucose climbs | milder | harder |
+| Plateau | how hard the loop acts while glucose stays high | milder | harder |
+
+Each slider has nine steps, from −4 to +4. The middle (0) is the start.
+
+**While easy tuning is on:**
+
+- The loop takes the 15 numbers from a table in the code (`AutoIsfEasy.kt`) and the two steps. The
+  sections *AutoISF settings* and *SMB delivery settings* are hidden.
+- Nothing is written into your settings. **When you switch easy tuning off, the values from the
+  full settings apply again, not the sliders.** If you never set them, they are the AutoISF
+  defaults, and with those AutoISF does almost nothing.
+- The AutoISF weights are used even when the switch *Enable AutoISF weights* is off.
+- The log has a line such as `AutoISF easy tuning: rise +1, plateau 0`.
+- The analysis card (chapter 2) shows the values in use, but makes no suggestion.
+
+**The table.** Slider *Rise*:
+
+| Step | −4 | −3 | −2 | −1 | 0 | +1 | +2 | +3 | +4 |
+|---|---|---|---|---|---|---|---|---|---|
+| bgAccel_ISF_weight | 0.05 | 0.08 | 0.10 | 0.12 | 0.15 | 0.19 | 0.22 | 0.26 | 0.30 |
+| pp_ISF_weight | 0.010 | 0.015 | 0.020 | 0.025 | 0.030 | 0.035 | 0.040 | 0.050 | 0.060 |
+| bgBrake_ISF_weight | 0.12 | 0.12 | 0.11 | 0.11 | 0.10 | 0.10 | 0.09 | 0.09 | 0.08 |
+
+Slider *Plateau*:
+
+| Step | −4 | −3 | −2 | −1 | 0 | +1 | +2 | +3 | +4 |
+|---|---|---|---|---|---|---|---|---|---|
+| dura_ISF_weight | 0.00 | 0.01 | 0.02 | 0.03 | 0.05 | 0.07 | 0.10 | 0.15 | 0.20 |
+| higher_ISFrange_weight | 0.20 | 0.25 | 0.30 | 0.35 | 0.40 | 0.45 | 0.50 | 0.55 | 0.60 |
+
+Fixed, no slider changes them:
+
+| Setting | Value | Note |
+|---|---|---|
+| autoISF_max | 1.4 | the limit of every factor |
+| autoISF_min | 0.7 | |
+| lower_ISFrange_weight | 0.3 | |
+| Blended BG ISF weight | 0.0 | off |
+| iob_threshold_percent | 80 % | works only with *SMB on even target* on, as always |
+| smb_delivery_ratio_min | 0.5 | at target and below |
+| smb_delivery_ratio_max | 0.8 | from 0.5 mmol/l above target |
+| smb_delivery_ratio_bg_range | 0.5 mmol/l | |
+| smb_max_range_extension | 2 | an SMB of up to 2 × 30 min of basal |
+
+**Read this before you use it:**
+
+- The numbers are a careful start. Nobody has tested them as a dosing for you. Start at 0 / 0, move
+  one slider one step at a time, and watch a few days.
+- "Milder" means a milder change of ISF. The SMB part is fixed and it is **stronger than plain
+  AAPS at every step**: up to 80 % of the insulin needed in one SMB (AAPS: 50 %), and an SMB as big
+  as 60 minutes of basal (AAPS: 30 minutes).
+- The switches of AutoISF (SMB, UAM, *SMB on even target*, the step rules, ...) stay as you set
+  them. Easy tuning changes only the 15 numbers.
+
+For developers: `AutoIsfEasy.kt` (the table), `AutoIsfValues.kt` (the one place that reads the 15
+numbers: table or settings), keys `autoISF_easy_mode`, `autoISF_easy_rise`, `autoISF_easy_plateau`,
+the rule `AutoIsfVisibility.FULL_SETTINGS` in `core/keys` that hides the full settings.

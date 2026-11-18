@@ -1,6 +1,6 @@
-# AutoISF fork: blended BG a ladiaca karta
+# AutoISF fork: blended BG, ladiaca karta a Easy tuning
 
-Cadence, zostavenie AndroidAPS (github.com/Romcoloop/Cadence), mení plugin **OpenAPS AutoISF** na štyroch
+Cadence, zostavenie AndroidAPS (github.com/Romcoloop/Cadence), mení plugin **OpenAPS AutoISF** na piatich
 miestach. Všetko ostatné je upstream AndroidAPS.
 
 | Čo | Kde v appke | Vypnuté znamená |
@@ -9,6 +9,7 @@ miestach. Všetko ostatné je upstream AndroidAPS.
 | 2. AutoISF log analysis (ladiaca karta) | karta na obrazovke pluginu AutoISF | len číta; zapisuje po „Použiť“ |
 | 3. Kroky a aktivita | AutoISF settings → Steps and activity | všetkých 5 prepínačov vypnutých = ako upstream |
 | 4. SMB vždy s akýmkoľvek senzorom | AutoISF settings → SMB always with any sensor | prepínač vypnutý = ako upstream |
+| 5. Easy tuning: dva posuvníky namiesto 15 čísel | nastavenia pluginu AutoISF → Easy tuning | prepínač vypnutý = platí plné nastavenie |
 
 Všetko je vo vetve `main`. **Inštaluj buildy z `main`.**
 Build: GitHub Actions workflow „AutoISF APK“ (APK pre telefón aj hodinky; `runTests = true` najprv
@@ -292,3 +293,73 @@ bezpečnostné pravidlo AAPS.
   `Safety: SMB always and after carbs allowed by the user though the active BG source has no advanced
   filtering`.
 - **Jednoduchý režim** používa predvolenú hodnotu, takže tam obmedzenie ostáva.
+
+## 8. Easy tuning (jednoduché ladenie)
+
+AutoISF má 15 čísel. Easy tuning ich nahrádza **dvoma posuvníkmi**, pre ľudí, ktorí sa ich všetky
+nechcú učiť. Predvolene je vypnutý a vypnutý znamená presne ako predtým.
+
+**Kde:** nastavenia pluginu OpenAPS AutoISF, úplne hore: prepínač **Easy tuning** a pod ním posuvníky
+**Rise** a **Plateau**. **Simple mode** v AAPS skrýva všetky nastavenia AutoISF, preto ho najprv
+vypni v nastaveniach AAPS. V Simple mode je Easy tuning vždy vypnutý.
+
+| Posuvník | Čo znamená | Vľavo | Vpravo |
+|---|---|---|---|
+| Rise (vzostup) | ako tvrdo loop zasiahne, keď glykémia stúpa | miernejšie | tvrdšie |
+| Plateau (plató) | ako tvrdo loop zasiahne, keď glykémia ostáva vysoko | miernejšie | tvrdšie |
+
+Každý posuvník má deväť polôh, od −4 do +4. Stred (0) je štart.
+
+**Keď je Easy tuning zapnutý:**
+
+- Loop berie 15 čísel z tabuľky v kóde (`AutoIsfEasy.kt`) podľa dvoch polôh. Sekcie *AutoISF
+  settings* a *SMB delivery settings* sú skryté.
+- Do tvojich nastavení sa nič nezapisuje. **Po vypnutí Easy tuningu znova platia hodnoty z plného
+  nastavenia, nie z posuvníkov.** Ak si ich nikdy nenastavil, sú to predvolené hodnoty AutoISF
+  a s nimi AutoISF nerobí takmer nič.
+- Váhy AutoISF sa používajú, aj keď je prepínač *Enable AutoISF weights* vypnutý.
+- V logu je riadok napríklad `AutoISF easy tuning: rise +1, plateau 0`.
+- Karta analýzy (kapitola 2) ukáže používané hodnoty, ale nerobí návrh.
+
+**Tabuľka.** Posuvník *Rise*:
+
+| Poloha | −4 | −3 | −2 | −1 | 0 | +1 | +2 | +3 | +4 |
+|---|---|---|---|---|---|---|---|---|---|
+| bgAccel_ISF_weight | 0,05 | 0,08 | 0,10 | 0,12 | 0,15 | 0,19 | 0,22 | 0,26 | 0,30 |
+| pp_ISF_weight | 0,010 | 0,015 | 0,020 | 0,025 | 0,030 | 0,035 | 0,040 | 0,050 | 0,060 |
+| bgBrake_ISF_weight | 0,12 | 0,12 | 0,11 | 0,11 | 0,10 | 0,10 | 0,09 | 0,09 | 0,08 |
+
+Posuvník *Plateau*:
+
+| Poloha | −4 | −3 | −2 | −1 | 0 | +1 | +2 | +3 | +4 |
+|---|---|---|---|---|---|---|---|---|---|
+| dura_ISF_weight | 0,00 | 0,01 | 0,02 | 0,03 | 0,05 | 0,07 | 0,10 | 0,15 | 0,20 |
+| higher_ISFrange_weight | 0,20 | 0,25 | 0,30 | 0,35 | 0,40 | 0,45 | 0,50 | 0,55 | 0,60 |
+
+Pevné, žiadny posuvník ich nemení:
+
+| Nastavenie | Hodnota | Poznámka |
+|---|---|---|
+| autoISF_max | 1,4 | strop každého faktora |
+| autoISF_min | 0,7 | |
+| lower_ISFrange_weight | 0,3 | |
+| Blended BG ISF weight | 0,0 | vypnuté |
+| iob_threshold_percent | 80 % | účinkuje len so zapnutým *SMB pri párnom cieli*, ako vždy |
+| smb_delivery_ratio_min | 0,5 | na cieli a pod ním |
+| smb_delivery_ratio_max | 0,8 | od 0,5 mmol/l nad cieľom |
+| smb_delivery_ratio_bg_range | 0,5 mmol/l | |
+| smb_max_range_extension | 2 | SMB najviac 2 × 30 min bazálu |
+
+**Prečítaj si pred použitím:**
+
+- Čísla sú opatrný štart. Nikto ich neoveril ako dávkovanie pre teba. Začni na 0 / 0, posúvaj jeden
+  posuvník o jednu polohu a sleduj pár dní.
+- „Miernejšie“ znamená miernejšiu zmenu ISF. Časť SMB je pevná a je **ostrejšia než bežný AAPS pri
+  každej polohe**: až 80 % potrebného inzulínu v jednom SMB (AAPS: 50 %) a SMB veľký až ako
+  60 minút bazálu (AAPS: 30 minút).
+- Prepínače AutoISF (SMB, UAM, *SMB pri párnom cieli*, pravidlá krokov, ...) ostávajú, ako si ich
+  nastavil. Easy tuning mení len tých 15 čísel.
+
+Pre vývojárov: `AutoIsfEasy.kt` (tabuľka), `AutoIsfValues.kt` (jediné miesto, ktoré číta 15 čísel:
+tabuľka alebo nastavenia), kľúče `autoISF_easy_mode`, `autoISF_easy_rise`, `autoISF_easy_plateau`,
+pravidlo `AutoIsfVisibility.FULL_SETTINGS` v `core/keys`, ktoré skrýva plné nastavenia.

@@ -1,8 +1,9 @@
 # Cadence: AutoISF with a tuning card
 
 Cadence is a build of AndroidAPS with changes to the **OpenAPS AutoISF** plugin: blended BG for
-bg_ISF and an **AutoISF log analysis** card that suggests settings from the phone's logs. Nothing
-changes a value on its own.
+bg_ISF, an **AutoISF log analysis** card that suggests settings from the phone's logs, and **easy
+tuning** (two sliders instead of the 15 AutoISF numbers, off by default). Nothing changes a value on
+its own.
 
 * **Manual:** [docs/autoisf-fork.md](https://github.com/Romcoloop/Cadence/blob/main/docs/autoisf-fork.md)
   (English) · [docs/autoisf-fork.sk.md](https://github.com/Romcoloop/Cadence/blob/main/docs/autoisf-fork.sk.md) (slovensky)
