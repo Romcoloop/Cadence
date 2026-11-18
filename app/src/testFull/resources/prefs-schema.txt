@@ -87,6 +87,9 @@ application_protection|IntKey|true
 appwidget_%d|IntComposedKey|true
 aps_incarnation_no|DiaconnIntNonKey|true
 aps_link_to_docs|ApsIntentKey|false
+autoISF_easy_mode|BooleanKey|true
+autoISF_easy_plateau|IntKey|true
+autoISF_easy_rise|IntKey|true
 autoISF_max|DoubleKey|true
 autoISF_min|DoubleKey|true
 autoISF_steps_effort_protection|BooleanKey|true

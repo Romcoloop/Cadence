@@ -94,6 +94,35 @@ class OpenAPSAutoISFPluginTest : TestBaseWithProfile() {
     }
 
     @Test
+    fun `easy tuning takes the values from its table, not from the settings`() {
+        whenever(preferences.get(BooleanKey.ApsAutoIsfEasyMode)).thenReturn(true)
+        whenever(preferences.get(IntKey.ApsAutoIsfEasyRise)).thenReturn(0)
+        whenever(preferences.get(IntKey.ApsAutoIsfEasyPlateau)).thenReturn(4)
+
+        // No AutoISF setting is stubbed here: the mock would give 0.0 for each of them.
+        // SMB delivery ratio: 0.5 at target, 0.8 from the BG range (0.5 mmol/l, about 9 mg/dl) above it.
+        assertThat(openAPSAutoISFPlugin.determine_varSMBratio(90, 90.0, "AAPS")).isEqualTo(0.5)
+        assertThat(openAPSAutoISFPlugin.determine_varSMBratio(180, 90.0, "AAPS")).isEqualTo(0.8)
+        // higher_ISFrange_weight is 0.6 at plateau +4, and the curve gives 0.7 at this point
+        assertThat(openAPSAutoISFPlugin.interpolate(230.0)).isWithin(1e-9).of(0.42)
+        // the weights are used though the switch "Enable AutoISF weights" is off
+        assertThat(openAPSAutoISFPlugin.autoIsfWeights).isTrue()
+        assertThat(openAPSAutoISFPlugin.smbMaxRangeExtension).isEqualTo(2.0)
+        assertThat(openAPSAutoISFPlugin.iobThresholdPercent).isEqualTo(80)
+    }
+
+    @Test
+    fun `with easy tuning off the settings are used`() {
+        whenever(preferences.get(BooleanKey.ApsAutoIsfEasyMode)).thenReturn(false)
+        whenever(preferences.get(DoubleKey.ApsAutoIsfSmbMaxRangeExtension)).thenReturn(5.0)
+        whenever(preferences.get(IntKey.ApsAutoIsfIobThPercent)).thenReturn(90)
+
+        assertThat(openAPSAutoISFPlugin.smbMaxRangeExtension).isEqualTo(5.0)
+        assertThat(openAPSAutoISFPlugin.iobThresholdPercent).isEqualTo(90)
+        assertThat(openAPSAutoISFPlugin.autoIsfWeights).isFalse()
+    }
+
+    @Test
     fun interpolateTest() {
         whenever(preferences.get(DoubleKey.ApsAutoIsfLowBgWeight)).thenReturn(10.0)
         whenever(preferences.get(DoubleKey.ApsAutoIsfHighBgWeight)).thenReturn(1.0)

@@ -148,11 +148,12 @@ class AutoIsfLogAnalysisViewModel(
         )
 
         val notes = buildList {
-            if (result.valuesChanged) add(rh.gs(ApsStrings.autoisf_log_values_changed))
+            if (result.easyTuning) add(rh.gs(ApsStrings.autoisf_log_easy_tuning))
+            else if (result.valuesChanged) add(rh.gs(ApsStrings.autoisf_log_values_changed))
             if (recent.hadTempTarget) add(rh.gs(ApsStrings.autoisf_log_meal_temp_target))
             if (recent.incomplete) add(rh.gs(ApsStrings.autoisf_log_meal_incomplete))
             report.settingsChangedAt?.let { add(rh.gs(ApsStrings.autoisf_log_settings_changed, dateUtil.dateAndTimeString(it))) }
-            if (recent.used && !result.valuesChanged) {
+            if (recent.used && !result.valuesChanged && !result.easyTuning) {
                 if (!report.enoughData)
                     add(rh.gs(ApsStrings.autoisf_log_not_enough_data, rh.gs(CoreUiStrings.format_hours, stats.hours), rh.gs(CoreUiStrings.format_hours, AutoIsfLogAnalysis.MIN_HOURS_RECENT)))
                 else if (report.suggestions.isEmpty()) add(rh.gs(ApsStrings.autoisf_log_no_suggestions))

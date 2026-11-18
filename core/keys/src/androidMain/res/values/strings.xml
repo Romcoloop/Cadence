@@ -383,6 +383,12 @@
     <string name="openapsama_pp_ISF_weight_summary">This is the weight applied while glucose is rising and which strengthens ISF thereby potentially increasing insulin delivery.\n\nThe default value 0.0 effectively shuts off this effect.</string>
     <string name="pref_title_bg_blend_weight">Blended BG ISF weight</string>
     <string name="openapsama_bgBlend_ISF_weight_summary">Part of the BG rise expected in the next 20 minutes that bg_ISF already uses now. This makes bg_ISF react earlier when BG rises fast. Only used at or above target, never when BG falls. The lift is limited to 36 mg/dl (2 mmol/l).\n\nThe default value 0.0 effectively shuts off this effect.</string>
+    <string name="pref_title_autoisf_easy_mode">Easy tuning</string>
+    <string name="pref_summary_autoisf_easy_mode">Two sliders instead of all AutoISF numbers. When switched off, the values from the full settings apply, not the sliders.</string>
+    <string name="pref_title_autoisf_easy_rise">Rise</string>
+    <string name="pref_summary_autoisf_easy_rise">How hard to act while glucose climbs. Left is milder, right is harder.</string>
+    <string name="pref_title_autoisf_easy_plateau">Plateau</string>
+    <string name="pref_summary_autoisf_easy_plateau">How hard to act while glucose stays high. Left is milder, right is harder.</string>
     <string name="pref_title_autoisf_steps_phone_source">Use the phone as step source</string>
     <string name="pref_summary_autoisf_steps_phone_source">On: the step rules use only the steps counted by the phone (needs the Physical activity permission). Off: they use only the steps sent by your watch. The two are never mixed. The phone also stores its steps, so the automation trigger "Steps count" works without a watch. The loop log line "steps (phone)" or "steps (watch)" shows which source was used.</string>
     <string name="pref_title_autoisf_steps_sport_guard">Sport guard</string>

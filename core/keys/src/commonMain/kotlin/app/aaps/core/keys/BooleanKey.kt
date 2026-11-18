@@ -205,7 +205,28 @@ enum class BooleanKey(
         defaultedBySM = true,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
-    ApsUseAutoIsfWeights("openapsama_enable_autoISF", false, KeysStrings.pref_title_aps_use_autoisf_weights, KeysStrings.pref_summary_aps_use_autoisf_weights, defaultedBySM = true, sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)),
+    // Easy tuning uses the weights without this switch (see `AutoIsfValues` in the APS plugin), so it is hidden then.
+    ApsUseAutoIsfWeights(
+        "openapsama_enable_autoISF",
+        false,
+        KeysStrings.pref_title_aps_use_autoisf_weights,
+        KeysStrings.pref_summary_aps_use_autoisf_weights,
+        defaultedBySM = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
+        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
+    ),
+    /**
+     * Easy tuning: the loop takes the 15 AutoISF and SMB delivery numbers from the two sliders
+     * ([IntKey.ApsAutoIsfEasyRise], [IntKey.ApsAutoIsfEasyPlateau]) and not from the settings.
+     */
+    ApsAutoIsfEasyMode(
+        "autoISF_easy_mode",
+        false,
+        KeysStrings.pref_title_autoisf_easy_mode,
+        KeysStrings.pref_summary_autoisf_easy_mode,
+        defaultedBySM = true,
+        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
+    ),
     /** On: the step rules use only the phone's own step sensor (stored like a watch would). Off: only the watch. Needs the activity permission. */
     ApsAutoIsfStepsPhoneSource(
         "autoISF_steps_phone_source",

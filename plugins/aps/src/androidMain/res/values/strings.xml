@@ -164,6 +164,7 @@
     <string name="autoisf_log_title_recent" comment="%1$d=number of hours. Example: Last 3 h">Last %1$d h</string>
     <string name="autoisf_log_parameters_now">Values in use now</string>
     <string name="autoisf_log_values_changed">The AutoISF settings stored now are not the ones the last loop run used, so no suggestion is made. Run the analysis again after the next loop run.</string>
+    <string name="autoisf_log_easy_tuning">Easy tuning is on, so the loop uses the values of the two sliders and no suggestion is made. Move a slider, or switch easy tuning off to change each value.</string>
     <string name="autoisf_log_changed_meanwhile">This setting was changed after the analysis. Nothing was saved. Run the analysis again.</string>
 
 </resources>

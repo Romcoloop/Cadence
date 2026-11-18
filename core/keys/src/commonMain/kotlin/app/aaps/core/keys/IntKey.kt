@@ -368,7 +368,33 @@ enum class IntKey(
         title = KeysStrings.pref_title_iob_threshold_percent,
         summary = KeysStrings.openapsama_iob_threshold_percent_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.PERCENT,
+        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
+    ),
+    /** Easy tuning slider "Rise", from -4 (milder) to +4 (harder). Used only while [BooleanKey.ApsAutoIsfEasyMode] is on. */
+    ApsAutoIsfEasyRise(
+        key = "autoISF_easy_rise",
+        defaultValue = 0,
+        min = -4,
+        max = 4,
+        title = KeysStrings.pref_title_autoisf_easy_rise,
+        summary = KeysStrings.pref_summary_autoisf_easy_rise,
+        defaultedBySM = true,
+        dependency = BooleanKey.ApsAutoIsfEasyMode,
+        sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
+    ),
+    /** Easy tuning slider "Plateau", from -4 (milder) to +4 (harder). Used only while [BooleanKey.ApsAutoIsfEasyMode] is on. */
+    ApsAutoIsfEasyPlateau(
+        key = "autoISF_easy_plateau",
+        defaultValue = 0,
+        min = -4,
+        max = 4,
+        title = KeysStrings.pref_title_autoisf_easy_plateau,
+        summary = KeysStrings.pref_summary_autoisf_easy_plateau,
+        defaultedBySM = true,
+        dependency = BooleanKey.ApsAutoIsfEasyMode,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
     /** Steps in 60 minutes that start the mild level of [BooleanKey.ApsAutoIsfStepsSportGuard]. */

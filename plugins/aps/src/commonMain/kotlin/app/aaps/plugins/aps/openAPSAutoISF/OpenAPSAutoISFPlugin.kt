@@ -141,7 +141,9 @@ open class OpenAPSAutoISFPlugin(
     private var consoleError = mutableListOf<String>()
     private var consoleLog = mutableListOf<String>()
     val autoIsfVersion = "3.0.1"
-    val autoIsfWeights; get() = preferences.get(BooleanKey.ApsUseAutoIsfWeights)
+    /** The 15 AutoISF and SMB delivery numbers: the settings, or the easy tuning table, see [AutoIsfValues]. */
+    private val autoIsfValues = AutoIsfValues(preferences)
+    val autoIsfWeights; get() = autoIsfValues.weightsOn
     /** Phone step counter, stored steps and the step rules, see [AutoIsfSteps]. */
     internal val steps = AutoIsfSteps(preferences, persistenceLayer, phoneStepCounter, aapsLogger) {
         val local = Instant.fromEpochMilliseconds(dateUtil.now()).toLocalDateTime(TimeZone.currentSystemDefault())
@@ -177,24 +179,24 @@ open class OpenAPSAutoISFPlugin(
         steps.stop()
         super.onStop()
     }
-    private val autoISF_max; get() = preferences.get(DoubleKey.ApsAutoIsfMax)
-    private val autoISF_min; get() = preferences.get(DoubleKey.ApsAutoIsfMin)
-    private val bgAccel_ISF_weight; get() = preferences.get(DoubleKey.ApsAutoIsfBgAccelWeight)
-    private val bgBrake_ISF_weight; get() = preferences.get(DoubleKey.ApsAutoIsfBgBrakeWeight)
-    private val pp_ISF_weight; get() = preferences.get(DoubleKey.ApsAutoIsfPpWeight)
-    private val bgBlend_ISF_weight; get() = preferences.get(DoubleKey.ApsAutoIsfBgBlendWeight)
-    private val lower_ISFrange_weight; get() = preferences.get(DoubleKey.ApsAutoIsfLowBgWeight)
-    private val higher_ISFrange_weight; get() = preferences.get(DoubleKey.ApsAutoIsfHighBgWeight)
-    private val dura_ISF_weight; get() = preferences.get(DoubleKey.ApsAutoIsfDuraWeight)
-    private val smb_delivery_ratio; get() = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatio)
-    private val smb_delivery_ratio_min; get() = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioMin)
-    private val smb_delivery_ratio_max; get() = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioMax)
-    private val smb_delivery_ratio_bg_range_raw; get() = preferences.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange)
+    private val autoISF_max; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfMax)
+    private val autoISF_min; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfMin)
+    private val bgAccel_ISF_weight; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfBgAccelWeight)
+    private val bgBrake_ISF_weight; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfBgBrakeWeight)
+    private val pp_ISF_weight; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfPpWeight)
+    private val bgBlend_ISF_weight; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfBgBlendWeight)
+    private val lower_ISFrange_weight; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfLowBgWeight)
+    private val higher_ISFrange_weight; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfHighBgWeight)
+    private val dura_ISF_weight; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfDuraWeight)
+    private val smb_delivery_ratio; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfSmbDeliveryRatio)
+    private val smb_delivery_ratio_min; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioMin)
+    private val smb_delivery_ratio_max; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioMax)
+    private val smb_delivery_ratio_bg_range_raw; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfSmbDeliveryRatioBgRange)
     private val smb_delivery_ratio_bg_range
         get() = if (smb_delivery_ratio_bg_range_raw < 10.0) smb_delivery_ratio_bg_range_raw * Constants.MMOLL_TO_MGDL else smb_delivery_ratio_bg_range_raw
-    val smbMaxRangeExtension; get() = preferences.get(DoubleKey.ApsAutoIsfSmbMaxRangeExtension)
+    val smbMaxRangeExtension; get() = autoIsfValues.get(DoubleKey.ApsAutoIsfSmbMaxRangeExtension)
     private val enableSMB_EvenOn_OddOff_always; get() = preferences.get(BooleanKey.ApsAutoIsfSmbOnEvenTarget) // for profile target
-    val iobThresholdPercent; get() = preferences.get(IntKey.ApsAutoIsfIobThPercent)
+    val iobThresholdPercent; get() = autoIsfValues.get(IntKey.ApsAutoIsfIobThPercent)
     private val exerciseMode; get() = SMBDefaults.exercise_mode
     private val highTemptargetRaisesSensitivity; get() = preferences.get(BooleanKey.ApsAutoIsfHighTtRaisesSens)
     val normalTarget = Constants.NORMAL_TARGET_MGDL
@@ -591,6 +593,9 @@ open class OpenAPSAutoISFPlugin(
             autosensData.autosensResult
         } else autosensResult.sensResult = "autosens disabled"
 
+        // easy tuning: the values of this run come from the two sliders, see AutoIsfEasy
+        if (autoIsfValues.easy)
+            consoleError.add("AutoISF easy tuning: rise ${AutoIsfEasy.stepText(autoIsfValues.riseStep)}, plateau ${AutoIsfEasy.stepText(autoIsfValues.plateauStep)}")
         val dura05: Double = glucose_status.duraISFminutes
         val avg05: Double = glucose_status.duraISFaverage
         val maxISFReduction: Double = autoISF_max
@@ -933,6 +938,11 @@ open class OpenAPSAutoISFPlugin(
         key = "openapsautoisf_settings",
         title = ApsStrings.openaps_auto_isf,
         items = listOf(
+            // Easy tuning: the switch and its two sliders. While it is on, the sections "AutoISF
+            // settings" and "SMB delivery settings" are hidden by the visibility rule of their keys.
+            BooleanKey.ApsAutoIsfEasyMode,
+            IntKey.ApsAutoIsfEasyRise,
+            IntKey.ApsAutoIsfEasyPlateau,
             DoubleKey.ApsMaxBasal,
             DoubleKey.ApsSmbMaxIob,
             BooleanKey.ApsUseAutosens,

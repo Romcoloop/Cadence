@@ -216,6 +216,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_autoisf_min,
         summary = KeysStrings.openapsama_autoISF_min_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -227,6 +229,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_autoisf_max,
         summary = KeysStrings.openapsama_autoISF_max_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -238,6 +242,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_bg_accel_weight,
         summary = KeysStrings.openapsama_bgAccel_ISF_weight_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE_2,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -249,6 +255,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_bg_brake_weight,
         summary = KeysStrings.openapsama_bgBrake_ISF_weight_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE_2,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -260,6 +268,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_low_bg_weight,
         summary = KeysStrings.openapsama_lower_ISFrange_weight_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE_2,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -271,6 +281,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_high_bg_weight,
         summary = KeysStrings.openapsama_higher_ISFrange_weight_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE_2,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -282,6 +294,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_smb_delivery_ratio_bg_range,
         summary = KeysStrings.openapsama_smb_delivery_ratio_bg_range_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -293,6 +307,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_pp_weight,
         summary = KeysStrings.openapsama_pp_ISF_weight_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE_3,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -304,6 +320,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_bg_blend_weight,
         summary = KeysStrings.openapsama_bgBlend_ISF_weight_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE_2,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -315,6 +333,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_dura_weight,
         summary = KeysStrings.openapsama_dura_ISF_weight_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE_2,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -326,6 +346,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_smb_delivery_ratio,
         summary = KeysStrings.openapsama_smb_delivery_ratio_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE_2,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -337,6 +359,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_smb_delivery_ratio_min,
         summary = KeysStrings.openapsama_smb_delivery_ratio_min_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE_2,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -348,6 +372,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_smb_delivery_ratio_max,
         summary = KeysStrings.openapsama_smb_delivery_ratio_max_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE_2,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
@@ -359,6 +385,8 @@ enum class DoubleKey(
         title = KeysStrings.pref_title_smb_max_range_extension,
         summary = KeysStrings.openapsama_smb_max_range_extension_summary,
         defaultedBySM = true,
+        hideParentScreenIfHidden = true,
+        visibility = AutoIsfVisibility.FULL_SETTINGS,
         unitType = UnitType.DOUBLE,
         sync = SyncSpec(SyncChannel.Cold, SyncDirection.Bidirectional)
     ),
