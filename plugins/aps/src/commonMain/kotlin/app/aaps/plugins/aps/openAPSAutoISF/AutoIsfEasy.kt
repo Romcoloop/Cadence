@@ -30,9 +30,12 @@ object AutoIsfEasy {
         DoubleKey.ApsAutoIsfBgBrakeWeight to listOf(0.12, 0.12, 0.11, 0.11, 0.10, 0.10, 0.09, 0.09, 0.08)
     )
 
-    /** Slider "Plateau": one value for each step, from -4 to +4. */
+    /**
+     * Slider "Plateau": one value for each step, from -4 to +4.
+     *
+     * It moves only the weight for the height of BG. Step +4 is the value of the author's own setup.
+     */
     val plateau: Map<DoubleKey, List<Double>> = mapOf(
-        DoubleKey.ApsAutoIsfDuraWeight to listOf(0.00, 0.01, 0.02, 0.03, 0.05, 0.07, 0.10, 0.15, 0.20),
         DoubleKey.ApsAutoIsfHighBgWeight to listOf(0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60)
     )
 
@@ -41,6 +44,10 @@ object AutoIsfEasy {
         DoubleKey.ApsAutoIsfMin to 0.7,
         DoubleKey.ApsAutoIsfMax to 1.4,
         DoubleKey.ApsAutoIsfLowBgWeight to 0.3,
+        // The weight for how long BG stays flat and high. It is not on the slider: the loop takes the
+        // strongest factor, and on a plateau that is nearly always the height of BG. 0.03 is the
+        // value of the author's own setup. A higher value has not been tried.
+        DoubleKey.ApsAutoIsfDuraWeight to 0.03,
         DoubleKey.ApsAutoIsfBgBlendWeight to 0.0,
         // Not used while the BG range below is above 0. It is here so that every key has a value.
         DoubleKey.ApsAutoIsfSmbDeliveryRatio to 0.5,

@@ -62,7 +62,6 @@ class AutoIsfEasyTest {
         assertTrue(rising(AutoIsfEasy.rise.getValue(DoubleKey.ApsAutoIsfBgAccelWeight)))
         assertTrue(rising(AutoIsfEasy.rise.getValue(DoubleKey.ApsAutoIsfPpWeight)))
         assertTrue(falling(AutoIsfEasy.rise.getValue(DoubleKey.ApsAutoIsfBgBrakeWeight)))
-        assertTrue(rising(AutoIsfEasy.plateau.getValue(DoubleKey.ApsAutoIsfDuraWeight)))
         assertTrue(rising(AutoIsfEasy.plateau.getValue(DoubleKey.ApsAutoIsfHighBgWeight)))
     }
 
@@ -75,8 +74,8 @@ class AutoIsfEasyTest {
     fun eachSliderMovesOnlyItsOwnValues() {
         // "Rise" does not touch the plateau values
         assertEquals(
-            AutoIsfEasy.double(DoubleKey.ApsAutoIsfDuraWeight, -4, 1),
-            AutoIsfEasy.double(DoubleKey.ApsAutoIsfDuraWeight, 4, 1)
+            AutoIsfEasy.double(DoubleKey.ApsAutoIsfHighBgWeight, -4, 1),
+            AutoIsfEasy.double(DoubleKey.ApsAutoIsfHighBgWeight, 4, 1)
         )
         // "Plateau" does not touch the rise values
         assertEquals(
@@ -105,12 +104,12 @@ class AutoIsfEasyTest {
         assertEquals(0.060, AutoIsfEasy.double(DoubleKey.ApsAutoIsfPpWeight, 4, 0))
         assertEquals(0.12, AutoIsfEasy.double(DoubleKey.ApsAutoIsfBgBrakeWeight, -4, 0))
         assertEquals(0.08, AutoIsfEasy.double(DoubleKey.ApsAutoIsfBgBrakeWeight, 4, 0))
-        assertEquals(0.00, AutoIsfEasy.double(DoubleKey.ApsAutoIsfDuraWeight, 0, -4))
-        assertEquals(0.05, AutoIsfEasy.double(DoubleKey.ApsAutoIsfDuraWeight, 0, 0))
-        assertEquals(0.20, AutoIsfEasy.double(DoubleKey.ApsAutoIsfDuraWeight, 0, 4))
+        assertEquals(0.20, AutoIsfEasy.double(DoubleKey.ApsAutoIsfHighBgWeight, 0, -4))
         assertEquals(0.40, AutoIsfEasy.double(DoubleKey.ApsAutoIsfHighBgWeight, 0, 0))
         assertEquals(0.60, AutoIsfEasy.double(DoubleKey.ApsAutoIsfHighBgWeight, 0, 4))
         // the fixed values
+        assertEquals(0.03, AutoIsfEasy.double(DoubleKey.ApsAutoIsfDuraWeight, 0, -4))
+        assertEquals(0.03, AutoIsfEasy.double(DoubleKey.ApsAutoIsfDuraWeight, 0, 4))
         assertEquals(1.4, AutoIsfEasy.double(DoubleKey.ApsAutoIsfMax, 0, 0))
         assertEquals(0.7, AutoIsfEasy.double(DoubleKey.ApsAutoIsfMin, 0, 0))
         assertEquals(0.3, AutoIsfEasy.double(DoubleKey.ApsAutoIsfLowBgWeight, 0, 0))
